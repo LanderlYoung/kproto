@@ -1,0 +1,44 @@
+apply plugin: 'kotlin-multiplatform'
+apply plugin: 'kotlinx-serialization'
+
+kotlin {
+    targets {
+        // this is a ENV generated in XCode build context
+//        final def sdkName = System.getenv('SDK_NAME')
+//        final def iOSTarget = sdkName?.startsWith("iphoneos") ?
+//                // build to iphone devices
+//                presets.iosArm64 :
+//                // build to simulator
+//                presets.iosX64
+//
+//        fromPreset(iOSTarget, 'iOS') {
+//            compilations.main.outputKinds('FRAMEWORK')
+//        }
+
+        fromPreset(presets.jvm, 'jvm')
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            api "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlin_version"
+            api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+            implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version"
+        }
+
+        jvmMain.dependencies {
+            api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+            api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+        }
+
+//        iOSMain.dependencies {
+//            implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core-native:$kotlin_coroutines_version"
+//            implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime-native:$kotlin_serialization_version"
+//        }
+    }
+}
+
+// workaround for https://youtrack.jetbrains.com/issue/KT-27170
+configurations {
+    compileClassPath
+}
+
