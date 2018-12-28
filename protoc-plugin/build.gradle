@@ -15,7 +15,9 @@ kotlin {
 //            compilations.main.outputKinds('FRAMEWORK')
 //        }
 
-        fromPreset(presets.jvm, 'jvm')
+        fromPreset(presets.jvm, 'jvm') {
+//            compilations.main.outputKinds('JAR')
+        }
     }
 
     sourceSets {
