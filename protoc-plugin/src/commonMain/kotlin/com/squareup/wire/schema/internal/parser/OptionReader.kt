@@ -22,6 +22,7 @@ import com.squareup.wire.schema.internal.parser.OptionElement.Kind.LIST
 import com.squareup.wire.schema.internal.parser.OptionElement.Kind.MAP
 import com.squareup.wire.schema.internal.parser.OptionElement.Kind.NUMBER
 import com.squareup.wire.schema.internal.parser.OptionElement.Kind.STRING
+import kotlin.workaround.isDigit
 
 class OptionReader(internal val reader: SyntaxReader) {
 

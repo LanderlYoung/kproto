@@ -15,32 +15,18 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.parser.MessageElement
 
 /** An empty type which only holds nested types.  */
-class EnclosingType internal constructor(private val location: Location, private val type: ProtoType, private val documentation: String,
-                                         private val nestedTypes: List<Type>) : Type() {
+class EnclosingType
+internal constructor(
+        override val location: Location,
+        override val type: ProtoType,
+        override val documentation: String,
+        override val nestedTypes: List<Type>) : Type() {
 
-    override fun location(): Location {
-        return location
-    }
-
-    override fun type(): ProtoType {
-        return type
-    }
-
-    override fun documentation(): String {
-        return documentation
-    }
-
-    override fun options(): Options {
-        throw UnsupportedOperationException()
-    }
-
-    override fun nestedTypes(): List<Type> {
-        return nestedTypes
-    }
+    override val options: Options
+        get() = throw UnsupportedOperationException()
 
     internal override fun link(linker: Linker) {
         for (nestedType in nestedTypes) {
@@ -61,24 +47,23 @@ class EnclosingType internal constructor(private val location: Location, private
     }
 
     internal override fun retainAll(schema: Schema, markSet: MarkSet): Type? {
-        val retainedNestedTypesBuilder = List.builder<Type>()
+        val retainedNestedTypes = mutableListOf<Type>()
         for (nestedType in nestedTypes) {
             val retainedNestedType = nestedType.retainAll(schema, markSet)
             if (retainedNestedType != null) {
-                retainedNestedTypesBuilder.add(retainedNestedType)
+                retainedNestedTypes.add(retainedNestedType)
             }
         }
 
-        val retainedNestedTypes = retainedNestedTypesBuilder.build()
         return if (retainedNestedTypes.isEmpty()) {
             null
         } else EnclosingType(location, type, documentation, retainedNestedTypes)
     }
 
     internal fun toElement(): MessageElement {
-        return MessageElement.builder(location)
-                .name(type.simpleName())
-                .nestedTypes(Type.toElements(nestedTypes))
-                .build()
+        return MessageElement(
+                location = location,
+                name = type.simpleName(),
+                nestedTypes = Type.toElements(nestedTypes))
     }
 }

@@ -15,12 +15,6 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.LinkedHashMultimap
-import com.google.common.collect.Multimap
-import java.util.LinkedHashSet
-
-import com.google.common.base.Preconditions.checkArgument
-
 /**
  * A mark set is used in three phases:
  *
@@ -36,7 +30,7 @@ import com.google.common.base.Preconditions.checkArgument
  */
 internal class MarkSet(val identifierSet: IdentifierSet) {
     val types: MutableSet<ProtoType> = LinkedHashSet()
-    val members: Multimap<ProtoType, ProtoMember> = LinkedHashMultimap.create()
+    val members: MutableMap<ProtoType, MutableList<ProtoMember>> = mutableMapOf()
 
     /**
      * Marks `protoMember`, throwing if it is explicitly excluded, or if its enclosing type is
@@ -44,9 +38,9 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
      */
     fun root(protoMember: ProtoMember?) {
         if (protoMember == null) throw NullPointerException("protoMember == null")
-        checkArgument(!identifierSet.excludes(protoMember))
-        checkArgument(!types.contains(protoMember.type()))
-        members.put(protoMember.type(), protoMember)
+        check(!identifierSet.excludes(protoMember))
+        check(!types.contains(protoMember.type))
+        members.getOrPut(protoMember.type) { mutableListOf() }.add(protoMember)
     }
 
     /**
@@ -55,8 +49,8 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
      */
     fun root(type: ProtoType?) {
         if (type == null) throw NullPointerException("type == null")
-        checkArgument(!identifierSet.excludes(type))
-        checkArgument(!members.containsKey(type))
+        check(!identifierSet.excludes(type))
+        check(!members.containsKey(type))
         types.add(type)
     }
 
@@ -76,10 +70,10 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
     fun mark(protoMember: ProtoMember?): Boolean {
         if (protoMember == null) throw NullPointerException("type == null")
         if (identifierSet.excludes(protoMember)) return false
-        return if (members.containsKey(protoMember.type()))
-            members.put(protoMember.type(), protoMember)
+        return if (members.containsKey(protoMember.type))
+            members.getOrPut(protoMember.type) { mutableListOf() }.add(protoMember)
         else
-            types.add(protoMember.type())
+            types.add(protoMember.type)
     }
 
     /** Returns true if all members of `type` are marked and should be retained.  */
@@ -98,9 +92,6 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
     operator fun contains(protoMember: ProtoMember?): Boolean {
         if (protoMember == null) throw NullPointerException("protoMember == null")
         if (identifierSet.excludes(protoMember)) return false
-        return if (members.containsKey(protoMember.type()))
-            members.containsEntry(protoMember.type(), protoMember)
-        else
-            types.contains(protoMember.type())
+        return members[protoMember.type]?.contains(protoMember) == true
     }
 }

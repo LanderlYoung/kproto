@@ -15,53 +15,49 @@
  */
 package com.squareup.wire.schema
 
-import com.google.auto.value.AutoValue
-import com.google.common.base.CharMatcher
-import java.io.File
-
 /**
  * Locates a .proto file, or a position within a .proto file, on the file system. This includes a
  * base directory or a .jar file, and a path relative to that base.
  */
-@AutoValue
-abstract class Location {
+data class Location(
+        /** Returns the base of this location; typically a directory or .jar file.  */
+        val base: String,
+
+        /** Returns the path to this location relative to [.base].  */
+        val path: String,
+
+        /** Returns the line number of this location, or -1 for no specific line number.  */
+        val line: Int,
+
+        /** Returns the column on the line of this location, or -1 for no specific column.  */
+        val column: Int
+) {
 
     fun at(line: Int, column: Int): Location {
-        return AutoValue_Location(base(), path(), line, column)
+        return copy(line = line, column = column)
     }
 
     /** Returns a copy of this location with an empty base.  */
     fun withoutBase(): Location {
-        return AutoValue_Location("", path(), line(), column())
+        return copy(base = "")
     }
 
     /** Returns a copy of this location including only its path.  */
     fun withPathOnly(): Location {
-        return AutoValue_Location("", path(), -1, -1)
+        return copy(base = "", line = -1, column = -1)
     }
 
-    /** Returns the base of this location; typically a directory or .jar file.  */
-    abstract fun base(): String
-
-    /** Returns the path to this location relative to [.base].  */
-    abstract fun path(): String
-
-    /** Returns the line number of this location, or -1 for no specific line number.  */
-    abstract fun line(): Int
-
-    /** Returns the column on the line of this location, or -1 for no specific column.  */
-    abstract fun column(): Int
 
     override fun toString(): String {
         val result = StringBuilder()
-        if (!base().isEmpty()) {
-            result.append(base()).append(File.separator)
+        if (!base.isEmpty()) {
+            result.append(base).append("/")
         }
-        result.append(path())
-        if (line() != -1) {
-            result.append(" at ").append(line())
-            if (column() != -1) {
-                result.append(':').append(column())
+        result.append(path)
+        if (line != -1) {
+            result.append(" at ").append(line)
+            if (column != -1) {
+                result.append(':').append(column)
             }
         }
         return result.toString()
@@ -72,12 +68,10 @@ abstract class Location {
             return get("", path)
         }
 
-        operator fun get(base: String, path: String): Location {
-            var base = base
-            var path = path
-            base = CharMatcher.`is`('/').trimTrailingFrom(base)
-            path = CharMatcher.`is`('/').trimLeadingFrom(path)
-            return AutoValue_Location(base, path, -1, -1)
-        }
+        operator fun get(base: String, path: String) =
+                Location(base.trimEnd('/'),
+                        path.trimStart('/'),
+                        -1,
+                        -1)
     }
 }

@@ -15,27 +15,20 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import java.util.ArrayDeque
-import java.util.Deque
-
 /**
  * Creates a new schema that contains only the types selected by an identifier set, including their
  * transitive dependencies.
  */
-internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
-    val marks: MarkSet
+internal class Pruner(val schema: Schema, private val identifierSet: IdentifierSet) {
+    private val marks: MarkSet = MarkSet(identifierSet)
 
     /**
      * [types][ProtoType] and [members][ProtoMember] whose immediate dependencies have not
      * yet been visited.
+     *
+     * TODO:K/N stdlib don;t even have a LinkedList???
      */
-    val queue: Deque<Any>
-
-    init {
-        this.marks = MarkSet(identifierSet)
-        this.queue = ArrayDeque()
-    }
+    private val queue = mutableListOf<Any>()
 
     fun prune(): Schema {
         markRoots()
@@ -65,37 +58,37 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
     }
 
     private fun markRoots(type: Type) {
-        val protoType = type.type()
+        val protoType = type.type
         if (identifierSet.includes(protoType)) {
             marks.root(protoType)
             queue.add(protoType)
         } else {
             if (type is MessageType) {
                 for (field in type.fieldsAndOneOfFields()) {
-                    markRoots(ProtoMember.get(protoType, field.name()))
+                    markRoots(ProtoMember.get(protoType, field.name))
                 }
             } else if (type is EnumType) {
                 for (enumConstant in type.constants()) {
-                    markRoots(ProtoMember.get(protoType, enumConstant.name()))
+                    markRoots(ProtoMember.get(protoType, enumConstant.name))
                 }
             } else {
                 throw AssertionError()
             }
         }
 
-        for (nested in type.nestedTypes()) {
+        for (nested in type.nestedTypes) {
             markRoots(nested)
         }
     }
 
     private fun markRoots(service: Service) {
-        val protoType = service.type()
+        val protoType = service.type
         if (identifierSet.includes(protoType)) {
             marks.root(protoType)
             queue.add(protoType)
         } else {
-            for (rpc in service.rpcs()) {
-                markRoots(ProtoMember.get(protoType, rpc.name()))
+            for (rpc in service.rpcs) {
+                markRoots(ProtoMember.get(protoType, rpc.name))
             }
         }
     }
@@ -109,64 +102,68 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
 
     private fun markReachable() {
         // Mark everything reachable by what's enqueued, queueing new things as we go.
-        var root: Any
-        while ((root = queue.poll()) != null) {
-            if (root is ProtoMember) {
-                val protoMember = root
-                mark(protoMember.type())
-                val member = root.member()
-                val type = schema.getType(protoMember.type())
-                if (type is MessageType) {
-                    var field = type.field(member)
-                    if (field == null) {
-                        field = type.extensionField(member)
+//        var root: Any?
+        try {
+            queue.forEach { root ->
+                if (root is ProtoMember) {
+                    val protoMember = root
+                    mark(protoMember.type)
+                    val member = root.member
+                    val type = schema.getType(protoMember.type)
+                    if (type is MessageType) {
+                        var field = type.field(member)
+                        if (field == null) {
+                            field = type.extensionField(member)
+                        }
+                        if (field != null) {
+                            markField(type.type, field)
+                            return@forEach
+                        }
+                    } else if (type is EnumType) {
+                        val constant = type.constant(member)
+                        if (constant != null) {
+                            markOptions(constant.options)
+                            return@forEach
+                        }
                     }
-                    if (field != null) {
-                        markField(type.type(), field)
-                        continue
+
+                    val service = schema.getService(protoMember.type)
+                    if (service != null) {
+                        val rpc = service.rpc(member)
+                        if (rpc != null) {
+                            markRpc(service.type, rpc)
+                            return@forEach
+                        }
                     }
-                } else if (type is EnumType) {
-                    val constant = type.constant(member)
-                    if (constant != null) {
-                        markOptions(constant.options())
-                        continue
+
+                    throw IllegalArgumentException("Unexpected member: $root")
+
+                } else if (root is ProtoType) {
+                    val protoType = root
+                    if (protoType.isScalar) {
+                        return@forEach // Skip scalar types.
                     }
-                }
 
-                val service = schema.getService(protoMember.type())
-                if (service != null) {
-                    val rpc = service.rpc(member)
-                    if (rpc != null) {
-                        markRpc(service.type(), rpc)
-                        continue
+                    val type = schema.getType(protoType)
+                    if (type != null) {
+                        markType(type)
+                        return@forEach
                     }
+
+                    val service = schema.getService(protoType)
+                    if (service != null) {
+                        markService(service)
+                        return@forEach
+                    }
+
+                    throw IllegalArgumentException("Unexpected type: $root")
+
+                } else {
+                    throw AssertionError()
                 }
-
-                throw IllegalArgumentException("Unexpected member: $root")
-
-            } else if (root is ProtoType) {
-                val protoType = root
-                if (protoType.isScalar) {
-                    continue // Skip scalar types.
-                }
-
-                val type = schema.getType(protoType)
-                if (type != null) {
-                    markType(type)
-                    continue
-                }
-
-                val service = schema.getService(protoType)
-                if (service != null) {
-                    markService(service)
-                    continue
-                }
-
-                throw IllegalArgumentException("Unexpected type: $root")
-
-            } else {
-                throw AssertionError()
             }
+        } finally {
+            queue.clear()
         }
     }
 
@@ -176,7 +173,7 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
         if (type.isMap) {
             marks.mark(type)
             // Map key type is always scalar. No need to mark it.
-            type = type.valueType()
+            type = type.valueType!!
         }
 
         if (marks.mark(type)) {
@@ -191,9 +188,9 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
     }
 
     private fun markType(type: Type) {
-        markOptions(type.options())
+        markOptions(type.options)
 
-        if (marks.containsAllMembers(type.type())) {
+        if (marks.containsAllMembers(type.type)) {
             if (type is MessageType) {
                 markMessage(type)
             } else if (type is EnumType) {
@@ -203,18 +200,18 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
     }
 
     private fun markMessage(message: MessageType) {
-        markFields(message.type(), message.fields())
+        markFields(message.type, message.fields())
         for (oneOf in message.oneOfs()) {
-            markFields(message.type(), oneOf.fields())
+            markFields(message.type, oneOf.fields)
         }
     }
 
     private fun markEnum(wireEnum: EnumType) {
-        markOptions(wireEnum.options())
-        if (marks.containsAllMembers(wireEnum.type())) {
+        markOptions(wireEnum.options)
+        if (marks.containsAllMembers(wireEnum.type)) {
             for (constant in wireEnum.constants()) {
-                if (marks.contains(ProtoMember.get(wireEnum.type(), constant.name()))) {
-                    markOptions(constant.options())
+                if (marks.contains(ProtoMember.get(wireEnum.type, constant.name))) {
+                    markOptions(constant.options)
                 }
             }
         }
@@ -227,32 +224,32 @@ internal class Pruner(val schema: Schema, val identifierSet: IdentifierSet) {
     }
 
     private fun markField(declaringType: ProtoType, field: Field) {
-        if (marks.contains(ProtoMember.get(declaringType, field.name()))) {
-            markOptions(field.options())
-            mark(field.type()!!)
+        if (marks.contains(ProtoMember[declaringType, field.name])) {
+            markOptions(field.options)
+            mark(field.type)
         }
     }
 
     private fun markOptions(options: Options) {
-        for ((_, value) in options.fields().entries()) {
-            mark(value)
+        for ((_, value) in options.fields().entries) {
+            value.forEach { mark(it) }
         }
     }
 
     private fun markService(service: Service) {
-        markOptions(service.options())
-        if (marks.containsAllMembers(service.type())) {
-            for (rpc in service.rpcs()) {
-                markRpc(service.type(), rpc)
+        markOptions(service.options)
+        if (marks.containsAllMembers(service.type)) {
+            for (rpc in service.rpcs) {
+                markRpc(service.type, rpc)
             }
         }
     }
 
     private fun markRpc(declaringType: ProtoType, rpc: Rpc) {
-        if (marks.contains(ProtoMember.get(declaringType, rpc.name()))) {
-            markOptions(rpc.options())
-            mark(rpc.requestType()!!)
-            mark(rpc.responseType()!!)
+        if (marks.contains(ProtoMember.get(declaringType, rpc.name))) {
+            markOptions(rpc.options)
+            mark(rpc.requestType!!)
+            mark(rpc.responseType!!)
         }
     }
 }

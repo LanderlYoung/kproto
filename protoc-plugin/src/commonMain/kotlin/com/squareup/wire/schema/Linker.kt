@@ -15,13 +15,9 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import com.google.common.collect.LinkedHashMultimap
-import com.google.common.collect.Multimap
+import com.squareup.wire.schema.internal.Multimap
 import com.squareup.wire.schema.internal.Util
-import java.util.ArrayList
-import java.util.Collections
-import java.util.LinkedHashMap
+import kotlin.workaround._format
 
 /** Links local field types and option types to the corresponding declarations.  */
 internal class Linker {
@@ -32,10 +28,10 @@ internal class Linker {
     private val contextStack: List<Any>
 
     constructor(protoFiles: Iterable<ProtoFile>) {
-        this.protoFiles = List.copyOf(protoFiles)
+        this.protoFiles = protoFiles.toList()
         this.protoTypeNames = LinkedHashMap()
-        this.imports = LinkedHashMultimap.create()
-        this.contextStack = emptyList<Any>()
+        this.imports = Multimap()
+        this.contextStack = emptyList()
         this.errors = ArrayList()
     }
 
@@ -87,15 +83,15 @@ internal class Linker {
         }
 
         // Compute public imports so we know that importing a.proto also imports b.proto and c.proto.
-        val publicImports = LinkedHashMultimap.create<String, String>()
+        val publicImports = Multimap<String, String>()
         for (protoFile in protoFiles) {
-            publicImports.putAll(protoFile.location().path(), protoFile.publicImports())
+            publicImports.putAll(protoFile.location.path, protoFile.publicImports)
         }
         // For each proto, gather its imports and its transitive imports.
         for (protoFile in protoFiles) {
-            val sink = imports.get(protoFile.location().path())
-            addImports(sink, protoFile.imports(), publicImports)
-            addImports(sink, protoFile.publicImports(), publicImports)
+            val sink = imports[protoFile.location.path]!!
+            addImports(sink, protoFile.imports, publicImports)
+            addImports(sink, protoFile.publicImports, publicImports)
         }
 
         // Validate the linked schema.
@@ -124,14 +120,14 @@ internal class Linker {
                            paths: Collection<String>, publicImports: Multimap<String, String>) {
         for (path in paths) {
             if (sink.add(path)) {
-                addImports(sink, publicImports.get(path), publicImports)
+                addImports(sink, publicImports[path]!!, publicImports)
             }
         }
     }
 
     private fun register(type: Type) {
-        protoTypeNames[type.type().toString()] = type
-        for (nestedType in type.nestedTypes()) {
+        protoTypeNames[type.type.toString()] = type
+        for (nestedType in type.nestedTypes) {
             register(nestedType)
         }
     }
@@ -175,7 +171,7 @@ internal class Linker {
             return ProtoType.BYTES // Just return any placeholder.
         }
 
-        return resolved.type()
+        return resolved.type
     }
 
     fun <T> resolve(name: String, map: Map<String, T>): T? {
@@ -205,12 +201,12 @@ internal class Linker {
         for (i in contextStack.indices.reversed()) {
             val context = contextStack[i]
             if (context is Type) {
-                return context.type().toString()
+                return context.type.toString()
             } else if (context is ProtoFile) {
-                val packageName = context.packageName()
+                val packageName = context.packageName
                 return packageName ?: ""
             } else if (context is Field && context.isExtension) {
-                val packageName = context.packageName()
+                val packageName = context.packageName
                 return packageName ?: ""
             }
         }
@@ -220,13 +216,13 @@ internal class Linker {
     /** Returns the current package name from the context stack.  */
     fun packageName(): String? {
         for (context in contextStack) {
-            if (context is ProtoFile) return context.packageName()
+            if (context is ProtoFile) return context.packageName
         }
         return null
     }
 
     /** Returns the type or null if it doesn't exist.  */
-    operator fun get(protoType: ProtoType): Type {
+    operator fun get(protoType: ProtoType): Type? {
         return protoTypeNames[protoType.toString()]
     }
 
@@ -237,7 +233,7 @@ internal class Linker {
             field = field.substring(1, field.length - 1)
         }
 
-        val type = protoTypeNames[self.type()!!.toString()]
+        val type = protoTypeNames[self.type!!.toString()]
         if (type is MessageType) {
             val messageField = type.field(field)
             if (messageField != null) return messageField
@@ -252,10 +248,10 @@ internal class Linker {
 
     /** Validate that the tags of `fields` are unique and in range.  */
     fun validateFields(fields: Iterable<Field>, reserveds: List<Reserved>) {
-        val tagToField = LinkedHashMultimap.create<Int, Field>()
-        val nameToField = LinkedHashMultimap.create<String, Field>()
+        val tagToField = Multimap<Int, Field>()
+        val nameToField = Multimap<String, Field>()
         for (field in fields) {
-            val tag = field.tag()
+            val tag = field.tag
             if (!Util.isValidTag(tag)) {
                 withContext(field).addError("tag is out of range: %s", tag)
             }
@@ -264,38 +260,48 @@ internal class Linker {
                 if (reserved.matchesTag(tag)) {
                     withContext(field).addError("tag %s is reserved (%s)", tag, reserved.location())
                 }
-                if (reserved.matchesName(field.name())) {
-                    withContext(field).addError("name '%s' is reserved (%s)", field.name(),
+                if (reserved.matchesName(field.name)) {
+                    withContext(field).addError("name '%s' is reserved (%s)", field.name,
                             reserved.location())
                 }
             }
 
             tagToField.put(tag, field)
-            nameToField.put(field.qualifiedName(), field)
+            nameToField.put(field.qualifiedName, field)
         }
 
-        for ((key, value) in tagToField.asMap()) {
+        for ((key, value) in tagToField) {
             if (value.size > 1) {
                 val error = StringBuilder()
-                error.append(String.format("multiple fields share tag %s:", key))
+                error.append("multiple fields share tag $key:")
                 var index = 1
                 for (field in value) {
-                    error.append(String.format("\n  %s. %s (%s)",
-                            index++, field.name(), field.location()))
+                    error.append("\n  ")
+                            .append(index++)
+                            .append(". ")
+                            .append(field.name)
+                            .append(" (")
+                            .append(field.location)
+                            .append(")")
                 }
                 addError("%s", error)
             }
         }
 
-        for (collidingFields in nameToField.asMap().values) {
+        for (collidingFields in nameToField.values) {
             if (collidingFields.size > 1) {
                 val first = collidingFields.iterator().next()
                 val error = StringBuilder()
-                error.append(String.format("multiple fields share name %s:", first.name()))
+                error.append("multiple fields share name ${first.name}:")
                 var index = 1
                 for (field in collidingFields) {
-                    error.append(String.format("\n  %s. %s (%s)",
-                            index++, field.name(), field.location()))
+                    error.append("\n  ")
+                            .append(index++)
+                            .append(". ")
+                            .append(field.name)
+                            .append(" (")
+                            .append(field.location)
+                            .append(")")
                 }
                 addError("%s", error)
             }
@@ -303,23 +309,25 @@ internal class Linker {
     }
 
     fun validateEnumConstantNameUniqueness(nestedTypes: Iterable<Type>) {
-        val nameToType = LinkedHashMultimap.create<String, EnumType>()
+        val nameToType = Multimap<String, EnumType>()
         for (type in nestedTypes) {
             if (type is EnumType) {
                 for (enumConstant in type.constants()) {
-                    nameToType.put(enumConstant.name(), type)
+                    nameToType.put(enumConstant.name, type)
                 }
             }
         }
 
-        for ((constant, value) in nameToType.asMap()) {
+        for ((constant, value) in nameToType) {
             if (value.size > 1) {
                 val error = StringBuilder()
                 var index = 1
-                error.append(String.format("multiple enums share constant %s:", constant))
+                error.append("multiple enums share constant $constant:")
                 for (enumType in value) {
-                    error.append(String.format("\n  %s. %s.%s (%s)",
-                            index++, enumType.type(), constant, enumType.constant(constant)!!.location()))
+                    error.append("\n  ")
+                            .append(index++)
+                            .append(". ").append(enumType.type).append('.').append(constant)
+                            .append(" (").append(enumType.constant(constant)!!.location).append(")")
                 }
                 addError("%s", error)
             }
@@ -329,12 +337,12 @@ internal class Linker {
     fun validateImport(location: Location, type: ProtoType) {
         var type = type
         // Map key type is always scalar. No need to validate it.
-        if (type.isMap) type = type.valueType()
+        if (type.isMap) type = type.valueType!!
 
         if (type.isScalar) return
 
-        val path = location.path()
-        val requiredImport = get(type).location().path()
+        val path = location.path
+        val requiredImport = get(type)!!.location.path
         if (path != requiredImport && !imports.containsEntry(path, requiredImport)) {
             addError("%s needs to import %s", path, requiredImport)
         }
@@ -347,40 +355,40 @@ internal class Linker {
 
     fun addError(format: String, vararg args: Any) {
         val error = StringBuilder()
-        error.append(String.format(format, *args))
+        error.append(format._format(*args))
 
         for (i in contextStack.indices.reversed()) {
             val context = contextStack[i]
             val prefix = if (i == contextStack.size - 1) "\n  for" else "\n  in"
 
             if (context is Rpc) {
-                error.append(String.format("%s rpc %s (%s)", prefix, context.name(), context.location()))
+                error.append("%s rpc %s (%s)"._format(prefix, context.name, context.location))
 
             } else if (context is Extend) {
-                val type = context.type()
+                val type = context.protoType
                 error.append(if (type != null)
-                    String.format("%s extend %s (%s)", prefix, type, context.location())
+                    "%s extend %s (%s)"._format(prefix, type, context.location)
                 else
-                    String.format("%s extend (%s)", prefix, context.location()))
+                    "%s extend (%s)"._format(prefix, context.location))
 
             } else if (context is Field) {
-                error.append(String.format("%s field %s (%s)", prefix, context.name(), context.location()))
+                error.append("%s field %s (%s)"._format(prefix, context.name, context.location))
 
             } else if (context is MessageType) {
-                error.append(String.format("%s message %s (%s)",
-                        prefix, context.type(), context.location()))
+                error.append("%s message %s (%s)"._format(
+                        prefix, context.type, context.location))
 
             } else if (context is EnumType) {
-                error.append(String.format("%s enum %s (%s)",
-                        prefix, context.type(), context.location()))
+                error.append("%s enum %s (%s)"._format(
+                        prefix, context.type, context.location))
 
             } else if (context is Service) {
-                error.append(String.format("%s service %s (%s)",
-                        prefix, context.type(), context.location()))
+                error.append("%s service %s (%s)"._format(
+                        prefix, context.type, context.location))
 
             } else if (context is Extensions) {
-                error.append(String.format("%s extensions (%s)",
-                        prefix, context.location()))
+                error.append("%s extensions (%s)"._format(
+                        prefix, context.location))
             }
         }
 

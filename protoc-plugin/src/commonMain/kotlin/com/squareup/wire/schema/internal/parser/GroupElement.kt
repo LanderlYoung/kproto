@@ -22,7 +22,7 @@ import com.squareup.wire.schema.internal.Util.appendIndented
 
 data class GroupElement(
         val location: Location,
-        val label: Field?,
+        val label: Field.Label?,
         val name: String,
         val tag: Int,
         val documentation: String = "",

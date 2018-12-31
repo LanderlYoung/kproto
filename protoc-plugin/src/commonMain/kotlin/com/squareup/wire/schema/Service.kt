@@ -15,120 +15,97 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.parser.ServiceElement
 
-class Service private constructor(private val protoType: ProtoType, private val location: Location, private val documentation: String, private val name: String,
-                                  private val rpcs: List<Rpc>, private val options: Options) {
-
-    fun location(): Location {
-        return location
-    }
-
-    fun type(): ProtoType {
-        return protoType
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun name(): String {
-        return name
-    }
-
-    fun rpcs(): List<Rpc> {
-        return rpcs
-    }
+class Service private constructor(
+        val type: ProtoType,
+        val location: Location,
+        val documentation: String,
+        val name: String,
+        val rpcs: List<Rpc>,
+        val options: Options) {
 
     /** Returns the RPC named `name`, or null if this service has no such method.  */
     fun rpc(name: String): Rpc? {
         for (rpc in rpcs) {
-            if (rpc.name() == name) {
+            if (rpc.name == name) {
                 return rpc
             }
         }
         return null
     }
 
-    fun options(): Options {
-        return options
-    }
-
     internal fun link(linker: Linker) {
-        var linker = linker
-        linker = linker.withContext(this)
+        var _linker = linker.withContext(this)
         for (rpc in rpcs) {
-            rpc.link(linker)
+            rpc.link(_linker)
         }
     }
 
     internal fun linkOptions(linker: Linker) {
-        var linker = linker
-        linker = linker.withContext(this)
+        var _linker = linker.withContext(this)
         for (rpc in rpcs) {
-            rpc.linkOptions(linker)
+            rpc.linkOptions(_linker)
         }
-        options.link(linker)
+        options.link(_linker)
     }
 
     internal fun validate(linker: Linker) {
-        var linker = linker
-        linker = linker.withContext(this)
+        val _linker = linker.withContext(this)
         for (rpc in rpcs) {
-            rpc.validate(linker)
+            rpc.validate(_linker)
         }
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet): Service? {
         // If this service is not retained, prune it.
-        if (!markSet.contains(protoType)) {
+        if (!markSet.contains(type)) {
             return null
         }
 
-        val retainedRpcs = List.builder<Rpc>()
+        val retainedRpcs = mutableListOf<Rpc>()
         for (rpc in rpcs) {
             val retainedRpc = rpc.retainAll(schema, markSet)
-            if (retainedRpc != null && markSet.contains(ProtoMember.get(protoType, rpc.name()))) {
+            if (retainedRpc != null && markSet.contains(ProtoMember.get(type, rpc.name))) {
                 retainedRpcs.add(retainedRpc)
             }
         }
 
-        return Service(protoType, location, documentation, name, retainedRpcs.build(),
+        return Service(type, location, documentation, name, retainedRpcs,
                 options.retainAll(schema, markSet))
     }
 
     companion object {
 
         internal fun fromElement(protoType: ProtoType, element: ServiceElement): Service {
-            val rpcs = Rpc.fromElements(element.rpcs())
-            val options = Options(Options.SERVICE_OPTIONS, element.options())
+            val rpcs = Rpc.fromElements(element.rpcs)
+            val options = Options(Options.SERVICE_OPTIONS, element.options)
 
-            return Service(protoType, element.location(), element.documentation(), element.name(), rpcs,
+            return Service(protoType, element.location, element.documentation, element.name, rpcs,
                     options)
         }
 
-        internal fun fromElements(packageName: String,
+        internal fun fromElements(packageName: String?,
                                   elements: List<ServiceElement>): List<Service> {
-            val services = List.builder<Service>()
+            val services = mutableListOf<Service>()
             for (service in elements) {
-                val protoType = ProtoType.get(packageName, service.name())
+                val protoType = ProtoType[packageName, service.name]
                 services.add(Service.fromElement(protoType, service))
             }
-            return services.build()
+            return services
         }
 
         internal fun toElements(services: List<Service>): List<ServiceElement> {
-            val elements = List.Builder<ServiceElement>()
+            val elements = mutableListOf<ServiceElement>()
             for (service in services) {
-                elements.add(ServiceElement.builder(service.location)
-                        .documentation(service.documentation)
-                        .name(service.name)
-                        .rpcs(Rpc.toElements(service.rpcs))
-                        .options(service.options.toElements())
-                        .build())
+                elements.add(ServiceElement(
+                        location = service.location,
+                        documentation=service.documentation,
+                        name=service.name,
+                        rpcs=Rpc.toElements(service.rpcs),
+                        options=service.options.toElements()))
             }
-            return elements.build()
+            return elements
         }
     }
 }

@@ -15,45 +15,27 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import com.google.common.collect.LinkedHashMultimap
-import com.google.common.collect.Multimap
+import com.squareup.wire.schema.Options.Companion.ENUM_OPTIONS
 import com.squareup.wire.schema.internal.parser.EnumElement
 
-import com.squareup.wire.schema.Options.ENUM_OPTIONS
+class EnumType private constructor(
+        override val type: ProtoType,
+        override val location: Location,
+        override val documentation: String,
+        val name: String,
+        val constants: List<EnumConstant>,
+        override val options: Options,
+        override val nestedTypes: List<Type> = listOf()) : Type() {
 
-class EnumType private constructor(private val protoType: ProtoType, private val location: Location, private val documentation: String, private val name: String,
-                                   private val constants: List<EnumConstant>, private val options: Options) : Type() {
-    private var allowAlias: Any? = null
+    private var _allowAlias: Any? = null
 
-    override fun location(): Location {
-        return location
-    }
-
-    override fun type(): ProtoType {
-        return protoType
-    }
-
-    override fun documentation(): String {
-        return documentation
-    }
-
-    override fun options(): Options {
-        return options
-    }
-
-    override fun nestedTypes(): List<Type> {
-        return listOf() // Enums do not allow nested type declarations.
-    }
-
-    fun allowAlias(): Boolean {
-        return "true" == allowAlias
-    }
+    val allowAlias: Boolean
+        get() = "true" == _allowAlias
 
     /** Returns the constant named `name`, or null if this enum has no such constant.  */
     fun constant(name: String): EnumConstant? {
         for (constant in constants()) {
-            if (constant.name() == name) {
+            if (constant.name == name) {
                 return constant
             }
         }
@@ -63,7 +45,7 @@ class EnumType private constructor(private val protoType: ProtoType, private val
     /** Returns the constant tagged `tag`, or null if this enum has no such constant.  */
     fun constant(tag: Int): EnumConstant? {
         for (constant in constants()) {
-            if (constant.tag() == tag) {
+            if (constant.tag == tag) {
                 return constant
             }
         }
@@ -81,32 +63,33 @@ class EnumType private constructor(private val protoType: ProtoType, private val
         for (constant in constants) {
             constant.linkOptions(linker)
         }
-        allowAlias = options.get(ALLOW_ALIAS)
+        _allowAlias = options.get(ALLOW_ALIAS)
     }
 
     internal override fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
 
-        if ("true" != allowAlias) {
+        if (!allowAlias) {
             validateTagUniqueness(linker)
         }
     }
 
     private fun validateTagUniqueness(linker: Linker) {
-        val tagToConstant = LinkedHashMultimap.create<Int, EnumConstant>()
+        val tagToConstant = LinkedHashMap<Int, MutableList<EnumConstant>>()
         for (constant in constants) {
-            tagToConstant.put(constant.tag(), constant)
+            (tagToConstant.getOrPut(constant.tag) {
+                mutableListOf<EnumConstant>()
+            }).add(constant)
         }
 
-        for ((key, value) in tagToConstant.asMap()) {
+        for ((key, value) in tagToConstant) {
             if (value.size > 1) {
                 val error = StringBuilder()
-                error.append(String.format("multiple enum constants share tag %s:", key))
+                error.append("multiple enum constants share tag $key:")
                 var index = 1
                 for (constant in value) {
-                    error.append(String.format("\n  %s. %s (%s)",
-                            index++, constant.name(), constant.location()))
+                    error.append("\n  ${index++}. ${constant.name} (${constant.location})")
                 }
                 linker.addError("%s", error)
             }
@@ -115,39 +98,38 @@ class EnumType private constructor(private val protoType: ProtoType, private val
 
     internal override fun retainAll(schema: Schema, markSet: MarkSet): Type? {
         // If this type is not retained, prune it.
-        if (!markSet.contains(protoType)) return null
+        if (!markSet.contains(type)) return null
 
-        val retainedConstants = List.builder<EnumConstant>()
+        val retainedConstants = mutableListOf<EnumConstant>()
         for (constant in constants) {
-            if (markSet.contains(ProtoMember.get(protoType, constant.name()))) {
+            if (markSet.contains(ProtoMember.get(type, constant.name))) {
                 retainedConstants.add(constant.retainAll(schema, markSet))
             }
         }
 
-        val result = EnumType(protoType, location, documentation, name,
-                retainedConstants.build(), options.retainAll(schema, markSet))
-        result.allowAlias = allowAlias
+        val result = EnumType(type, location, documentation, name,
+                retainedConstants, options.retainAll(schema, markSet))
+        result._allowAlias = _allowAlias
         return result
     }
 
     internal fun toElement(): EnumElement {
-        return EnumElement.builder(location)
-                .name(name)
-                .documentation(documentation)
-                .constants(EnumConstant.toElements(constants))
-                .options(options.toElements())
-                .build()
+        return EnumElement(location = location,
+                name = name,
+                documentation = documentation,
+                constants = EnumConstant.toElements(constants),
+                options = options.toElements())
     }
 
     companion object {
         internal val ALLOW_ALIAS = ProtoMember.get(ENUM_OPTIONS, "allow_alias")
 
         internal fun fromElement(protoType: ProtoType, enumElement: EnumElement): EnumType {
-            val constants = EnumConstant.fromElements(enumElement.constants())
-            val options = Options(Options.ENUM_OPTIONS, enumElement.options())
+            val constants = EnumConstant.fromElements(enumElement.constants)
+            val options = Options(Options.ENUM_OPTIONS, enumElement.options)
 
-            return EnumType(protoType, enumElement.location(), enumElement.documentation(),
-                    enumElement.name(), constants, options)
+            return EnumType(protoType, enumElement.location, enumElement.documentation,
+                    enumElement.name, constants, options)
         }
     }
 }

@@ -23,7 +23,7 @@ import com.squareup.wire.schema.internal.Util.appendDocumentation
 data class ReservedElement(
         val location: Location,
         val documentation: String,
-        /** A [String] name or [Integer] or [Range&amp;lt;Integer&gt;][Range] tag.  */
+        /** A [String] name or [Integer] or [IntRange] tag.  */
         val values: List<Any>
 ) {
 
@@ -40,9 +40,8 @@ data class ReservedElement(
                 builder.append('"').append(reservation).append('"')
             } else if (reservation is Int) {
                 builder.append(reservation)
-            } else if (reservation is Range<*>) {
-                val range = reservation as Range<Int>
-                builder.append(range.lowerEndpoint()).append(" to ").append(range.upperEndpoint())
+            } else if (reservation is IntRange) {
+                builder.append(reservation.start).append(" to ").append(reservation.endInclusive)
             } else {
                 throw AssertionError()
             }

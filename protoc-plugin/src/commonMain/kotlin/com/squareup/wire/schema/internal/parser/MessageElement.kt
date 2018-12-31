@@ -25,7 +25,7 @@ data class MessageElement(
         override val documentation: String = "",
         override val options: List<OptionElement> = listOf(),
         override val nestedTypes: List<TypeElement> = listOf(),
-        val reserveds: List<ReservedElement>,
+        val reserveds: List<ReservedElement> = listOf(),
         val fields: List<FieldElement> = listOf(),
         val oneOfs: List<OneOfElement> = listOf(),
         val extensions: List<ExtensionsElement> = listOf(),

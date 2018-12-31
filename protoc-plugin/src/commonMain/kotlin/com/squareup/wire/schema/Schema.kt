@@ -15,12 +15,6 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import com.google.common.collect.ImmutableMap
-import com.google.common.collect.Ordering
-import com.squareup.wire.ProtoAdapter
-import java.util.LinkedHashMap
-
 /**
  * A collection of .proto files that describe a set of messages. A schema is *linked*: each
  * field's type name is resolved to the corresponding type definition.
@@ -31,11 +25,11 @@ import java.util.LinkedHashMap
 class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
 
     private val protoFiles: List<ProtoFile>
-    private val typesIndex: ImmutableMap<String, Type>
-    private val servicesIndex: ImmutableMap<String, Service>
+    private val typesIndex: Map<String, Type>
+    private val servicesIndex: Map<String, Service>
 
     init {
-        this.protoFiles = PATH_ORDER.immutableSortedCopy(protoFiles)
+        this.protoFiles = protoFiles.sortedWith(PATH_ORDER)
         this.typesIndex = buildTypesIndex(protoFiles)
         this.servicesIndex = buildServicesIndex(protoFiles)
     }
@@ -47,7 +41,7 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
     /** Returns the proto file at `path`, or null if this schema has no such file.  */
     fun protoFile(path: String): ProtoFile? {
         for (protoFile in protoFiles) {
-            if (protoFile.location().path() == path) {
+            if (protoFile.location.path == path) {
                 return protoFile
             }
         }
@@ -65,7 +59,7 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
      * Returns the service with the fully qualified name `name`, or null if this schema defines
      * no such service.
      */
-    fun getService(name: String): Service {
+    fun getService(name: String): Service? {
         return servicesIndex[name]
     }
 
@@ -73,7 +67,7 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
      * Returns the service with the fully qualified name `name`, or null if this schema defines
      * no such service.
      */
-    fun getService(protoType: ProtoType): Service {
+    fun getService(protoType: ProtoType): Service? {
         return getService(protoType.toString())
     }
 
@@ -94,10 +88,10 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
     }
 
     fun getField(protoMember: ProtoMember): Field? {
-        val type = getType(protoMember.type()) as? MessageType ?: return null
-        var field = type.field(protoMember.member())
+        val type = getType(protoMember.type) as? MessageType ?: return null
+        var field = type.field(protoMember.member)
         if (field == null) {
-            field = type.extensionField(protoMember.member())
+            field = type.extensionField(protoMember.member)
         }
         return field
     }
@@ -113,43 +107,43 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
      * for such values is the unknown value's tag name as a string. Unknown values are decoded to
      * [Long], [Long], [Integer], or [     ByteString][okio.ByteString] for [VARINT][com.squareup.wire.FieldEncoding.VARINT], [     ][com.squareup.wire.FieldEncoding.FIXED64], [     ][com.squareup.wire.FieldEncoding.FIXED32], or [     ][com.squareup.wire.FieldEncoding.LENGTH_DELIMITED] respectively.
      */
-    fun protoAdapter(typeName: String, includeUnknown: Boolean): ProtoAdapter<Any> {
-        val type = getType(typeName) ?: throw IllegalArgumentException("unexpected type $typeName")
-        return SchemaProtoAdapterFactory(this, includeUnknown).get(type.type())
-    }
+//    fun protoAdapter(typeName: String, includeUnknown: Boolean): ProtoAdapter<Any> {
+//        val type = getType(typeName) ?: throw IllegalArgumentException("unexpected type $typeName")
+//        return SchemaProtoAdapterFactory(this, includeUnknown)[type.type]
+//    }
 
     companion object {
-        private val PATH_ORDER = object : Ordering<ProtoFile>() {
+        private val PATH_ORDER = object : Comparator<ProtoFile> {
             override fun compare(left: ProtoFile, right: ProtoFile): Int {
-                return left.location().path().compareTo(right.location().path())
+                return left.location.path.compareTo(right.location.path)
             }
         }
 
-        private fun buildTypesIndex(protoFiles: Iterable<ProtoFile>): ImmutableMap<String, Type> {
-            val result = LinkedHashMap<String, Type>()
+        private fun buildTypesIndex(protoFiles: Iterable<ProtoFile>): Map<String, Type> {
+            val result = mutableMapOf<String, Type>()
             for (protoFile in protoFiles) {
                 for (type in protoFile.types()) {
                     index(result, type)
                 }
             }
-            return ImmutableMap.copyOf(result)
+            return result
         }
 
         private fun index(typesByName: MutableMap<String, Type>, type: Type) {
-            typesByName[type.type().toString()] = type
-            for (nested in type.nestedTypes()) {
+            typesByName[type.type.toString()] = type
+            for (nested in type.nestedTypes) {
                 index(typesByName, nested)
             }
         }
 
-        private fun buildServicesIndex(protoFiles: Iterable<ProtoFile>): ImmutableMap<String, Service> {
-            val result = ImmutableMap.builder<String, Service>()
+        private fun buildServicesIndex(protoFiles: Iterable<ProtoFile>): Map<String, Service> {
+            val result = mutableMapOf<String, Service>()
             for (protoFile in protoFiles) {
                 for (service in protoFile.services()) {
-                    result.put(service.type().toString(), service)
+                    result[service.type.toString()] = service
                 }
             }
-            return result.build()
+            return result
         }
     }
 }

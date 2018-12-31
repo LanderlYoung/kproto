@@ -15,52 +15,42 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.Util
 import com.squareup.wire.schema.internal.parser.ExtensionsElement
 
-internal class Extensions private constructor(private val location: Location, private val documentation: String, private val start: Int, private val end: Int) {
-
-    fun location(): Location {
-        return location
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun start(): Int {
-        return start
-    }
-
-    fun end(): Int {
-        return end
-    }
+internal class Extensions private constructor(
+        val location: Location,
+        val documentation: String,
+        val start: Int,
+        val end: Int) {
 
     fun validate(linker: Linker) {
-        if (!Util.isValidTag(start()) || !Util.isValidTag(end())) {
-            linker.withContext(this).addError("tags are out of range: %s to %s", start(), end())
+        if (!Util.isValidTag(start) || !Util.isValidTag(end)) {
+            linker.withContext(this).addError("tags are out of range: %s to %s", start, end)
         }
     }
 
     companion object {
 
         fun fromElements(elements: List<ExtensionsElement>): List<Extensions> {
-            val extensions = List.builder<Extensions>()
+            val extensions = mutableListOf<Extensions>()
             for (element in elements) {
-                extensions.add(Extensions(element.location(), element.documentation(),
-                        element.start(), element.end()))
+                extensions.add(Extensions(element.location, element.documentation,
+                        element.start, element.end))
             }
-            return extensions.build()
+            return extensions
         }
 
         fun toElements(extensions: List<Extensions>): List<ExtensionsElement> {
-            val elements = List.Builder<ExtensionsElement>()
+            val elements = mutableListOf<ExtensionsElement>()
             for (extension in extensions) {
-                elements.add(ExtensionsElement.create(extension.location, extension.start, extension.end,
-                        extension.documentation))
+                elements.add(ExtensionsElement(
+                        location = extension.location,
+                        start = extension.start,
+                        end = extension.end,
+                        documentation = extension.documentation))
             }
-            return elements.build()
+            return elements
         }
     }
 }

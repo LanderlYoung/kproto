@@ -45,7 +45,7 @@ object Util {
     }
 
     fun appendIndented(builder: StringBuilder, value: String) {
-        for (line in value.split("\n".toRegex()).dropLastWhile({ it.isEmpty() }).toTypedArray()) {
+        for (line in value.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()) {
             builder.append("  ").append(line).append('\n')
         }
     }
@@ -63,3 +63,4 @@ object Util {
         }
     }
 }
+

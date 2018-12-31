@@ -15,67 +15,54 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.parser.ExtendElement
 
-internal class Extend private constructor(private val location: Location, private val documentation: String, private val name: String,
-                                          private val fields: List<Field>) {
-    private var protoType: ProtoType? = null
+internal class Extend private constructor(
+        val location: Location,
+        val documentation: String,
+        private val name: String,
+        val fields: List<Field>) {
+    var protoType: ProtoType? = null
+        private set
 
-    fun location(): Location {
-        return location
-    }
-
-    fun type(): ProtoType? {
-        return protoType
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun fields(): List<Field> {
-        return fields
-    }
 
     fun link(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         protoType = linker.resolveMessageType(name)
         val type = linker.get(protoType!!)
-        if (type != null) {
-            (type as MessageType).addExtensionFields(fields)
-        }
+        (type as MessageType).addExtensionFields(fields)
     }
 
     fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
-        linker.validateImport(location(), type()!!)
+        linker.validateImport(location, protoType!!)
     }
 
     companion object {
 
-        fun fromElements(packageName: String,
+        fun fromElements(packageName: String?,
                          extendElements: List<ExtendElement>): List<Extend> {
-            val extendBuilder = List.Builder<Extend>()
+            val extendBuilder = mutableListOf<Extend>()
             for (extendElement in extendElements) {
-                extendBuilder.add(Extend(extendElement.location(), extendElement.documentation(),
-                        extendElement.name(), Field.fromElements(packageName, extendElement.fields(), true)))
+                extendBuilder.add(Extend(extendElement.location, extendElement.documentation,
+                        extendElement.name, Field.fromElements(packageName, extendElement.fields, true)))
             }
-            return extendBuilder.build()
+            return extendBuilder
         }
 
         fun toElements(extendList: List<Extend>): List<ExtendElement> {
-            val elements = List.Builder<ExtendElement>()
+            val elements = mutableListOf<ExtendElement>()
             for (extend in extendList) {
-                elements.add(ExtendElement.builder(extend.location)
-                        .documentation(extend.documentation)
-                        .name(extend.name)
-                        .fields(Field.toElements(extend.fields))
-                        .build())
+                elements.add(ExtendElement(
+                        location = extend.location,
+                        documentation = extend.documentation,
+                        name = extend.name,
+                        fields = Field.toElements(extend.fields)
+                ))
             }
-            return elements.build()
+            return elements
         }
     }
 }

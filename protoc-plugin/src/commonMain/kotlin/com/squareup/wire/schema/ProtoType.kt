@@ -25,7 +25,7 @@ class ProtoType {
     private val string: String
     val isMap: Boolean
     private val keyType: ProtoType?
-    private val valueType: ProtoType?
+    val valueType: ProtoType?
 
     /** Creates a scalar or message type.  */
     private constructor(isScalar: Boolean, string: String) {

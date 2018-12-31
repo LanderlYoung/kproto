@@ -24,25 +24,10 @@ package com.squareup.wire.schema
  * field is an extension to its type, that name is prefixed with its enclosing package. This yields
  * a member name with two packages, like `google.protobuf.FieldOptions#squareup.units.unit`.
  */
-class ProtoMember private constructor(private val type: ProtoType, private val member: String) {
-
-    fun type(): ProtoType {
-        return type
-    }
-
-    fun member(): String {
-        return member
-    }
-
-    override fun equals(o: Any?): Boolean {
-        return (o is ProtoMember
-                && type == o.type
-                && member == o.member)
-    }
-
-    override fun hashCode(): Int {
-        return type.hashCode() * 37 + member.hashCode()
-    }
+@Suppress("DataClassPrivateConstructor")
+data class ProtoMember private constructor(
+         val type: ProtoType,
+         val member: String) {
 
     override fun toString(): String {
         return type.toString() + "#" + member
@@ -63,7 +48,7 @@ class ProtoMember private constructor(private val type: ProtoType, private val m
         }
 
         operator fun get(type: ProtoType, field: Field): ProtoMember {
-            val member = if (field.isExtension) field.qualifiedName() else field.name()
+            val member = if (field.isExtension) field.qualifiedName else field.name
             return ProtoMember(type, member)
         }
     }

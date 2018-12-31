@@ -15,6 +15,4 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.base.Joiner
-
-class SchemaException(errors: List<String>) : RuntimeException(Joiner.on('\n').join(errors))
+class SchemaException(errors: List<String>) : RuntimeException(errors.joinToString("\n"))

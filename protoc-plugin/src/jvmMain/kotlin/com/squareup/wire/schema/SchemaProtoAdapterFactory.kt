@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
 package com.squareup.wire.schema
 
 import com.squareup.wire.FieldEncoding
@@ -93,11 +95,11 @@ internal class SchemaProtoAdapterFactory(val schema: Schema, val includeUnknown:
         override fun encode(writer: ProtoWriter, value: Any) {
             if (value is String) {
                 val constant = enumType.constant(value)
-                writer.writeVarint32(constant!!.tag())
+                writer.writeVarint32(constant!!.tag)
             } else if (value is Int) {
                 writer.writeVarint32(value)
             } else {
-                throw IllegalArgumentException("unexpected " + enumType.type() + ": " + value)
+                throw IllegalArgumentException("unexpected " + enumType.type + ": " + value)
             }
         }
 
@@ -193,3 +195,4 @@ internal class SchemaProtoAdapterFactory(val schema: Schema, val includeUnknown:
 
     internal class Field(val name: String, val tag: Int, val repeated: Boolean, val protoAdapter: ProtoAdapter<*>)
 }
+*/

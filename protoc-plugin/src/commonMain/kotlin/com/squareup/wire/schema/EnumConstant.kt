@@ -17,36 +17,20 @@ package com.squareup.wire.schema
 
 import com.squareup.wire.schema.internal.parser.EnumConstantElement
 
-class EnumConstant private constructor(private val location: Location, private val name: String, private val tag: Int, private val documentation: String,
-                                       private val options: Options) {
-
-    fun location(): Location {
-        return location
-    }
-
-    fun name(): String {
-        return name
-    }
-
-    fun tag(): Int {
-        return tag
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun options(): Options {
-        return options
-    }
+class EnumConstant private constructor(
+        val location: Location,
+        val name: String,
+        val tag: Int,
+        val documentation: String,
+        val options: Options) {
 
     internal fun toElement(): EnumConstantElement {
-        return EnumConstantElement.builder(location)
-                .documentation(documentation)
-                .name(name)
-                .tag(tag)
-                .options(options.toElements())
-                .build()
+        return EnumConstantElement(
+                location = location,
+                documentation = documentation,
+                name = name,
+                tag = tag,
+                options = options.toElements())
     }
 
     internal fun linkOptions(linker: Linker) {
@@ -60,8 +44,8 @@ class EnumConstant private constructor(private val location: Location, private v
     companion object {
 
         internal fun fromElement(element: EnumConstantElement): EnumConstant {
-            return EnumConstant(element.location(), element.name(), element.tag(),
-                    element.documentation(), Options(Options.ENUM_VALUE_OPTIONS, element.options()))
+            return EnumConstant(element.location, element.name, element.tag,
+                    element.documentation, Options(Options.ENUM_VALUE_OPTIONS, element.options))
         }
 
         internal fun fromElements(elements: List<EnumConstantElement>): List<EnumConstant> {

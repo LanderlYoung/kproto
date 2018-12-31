@@ -15,38 +15,39 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
+import com.squareup.wire.schema.Options.Companion.FIELD_OPTIONS
 import com.squareup.wire.schema.internal.parser.FieldElement
 
-import com.squareup.wire.schema.Options.FIELD_OPTIONS
-
 class Field private constructor(
-         val packageName: String?,
-         val location: Location,
-         val label: Label,
-         val name: String,
+        val packageName: String?,
+        val location: Location,
+        val label: Label?,
+        val name: String,
 
         private val documentation: String,
-        private val tag: Int,
-        val default: String,
+        val tag: Int,
+        val default: String?,
         private val elementType: String,
-        private val options: Options,
+        val options: Options,
         val isExtension: Boolean) {
 
-    private var type: ProtoType? = null
-    private var deprecated: Any? = null
-    private var packed: Any? = null
+    lateinit var type: ProtoType
+        private set
+    var deprecated: Any? = null
+        private set
+    var packed: Any? = null
+        private set
     var isRedacted: Boolean = false
         private set
 
     val isRepeated: Boolean
-        get() = label() == Label.REPEATED
+        get() = label == Label.REPEATED
 
     val isOptional: Boolean
-        get() = label() == Label.OPTIONAL
+        get() = label == Label.OPTIONAL
 
     val isRequired: Boolean
-        get() = label() == Label.REQUIRED
+        get() = label == Label.REQUIRED
 
     val isDeprecated: Boolean
         get() = "true" == deprecated
@@ -59,10 +60,10 @@ class Field private constructor(
      * fields, such as in options.
      */
     val qualifiedName: String =
-         if (packageName != null)
-            packageName + '.'.toString() + name
-        else
-            name
+            if (packageName != null)
+                packageName + '.'.toString() + name
+            else
+                name
 
     private fun isPackable(linker: Linker, type: ProtoType): Boolean {
         return (type != ProtoType.STRING
@@ -114,7 +115,7 @@ class Field private constructor(
     }
 
     override fun toString(): String {
-        return name()
+        return name
     }
 
     enum class Label {
@@ -127,7 +128,7 @@ class Field private constructor(
         internal val DEPRECATED = ProtoMember.get(FIELD_OPTIONS, "deprecated")
         internal val PACKED = ProtoMember.get(FIELD_OPTIONS, "packed")
 
-        internal fun fromElements(packageName: String,
+        internal fun fromElements(packageName: String?,
                                   fieldElements: List<FieldElement>, extension: Boolean): List<Field> {
             val fields = mutableListOf<Field>()
             for (field in fieldElements) {
@@ -135,35 +136,35 @@ class Field private constructor(
                         field.documentation, field.tag, field.defaultValue, field.type,
                         Options(Options.FIELD_OPTIONS, field.options), extension))
             }
-            return fields.build()
+            return fields
         }
 
         internal fun toElements(fields: List<Field>): List<FieldElement> {
-            val elements = List.Builder<FieldElement>()
+            val elements = mutableListOf<FieldElement>()
             for (field in fields) {
-                elements.add(FieldElement.builder(field.location)
-                        .label(field.label)
-                        .name(field.name)
-                        .documentation(field.documentation)
-                        .tag(field.tag)
-                        .defaultValue(field.default)
-                        .options(field.options.toElements())
-                        .type(field.elementType)
-                        .build())
+                elements.add(FieldElement(
+                        location = field.location,
+                        label = field.label,
+                        name = field.name,
+                        documentation = field.documentation,
+                        tag = field.tag,
+                        defaultValue = field.default,
+                        options = field.options.toElements(),
+                        type = field.elementType))
             }
-            return elements.build()
+            return elements
         }
 
         internal fun retainAll(
                 schema: Schema, markSet: MarkSet, enclosingType: ProtoType, fields: Collection<Field>): List<Field> {
-            val result = List.builder<Field>()
+            val result = mutableListOf<Field>()
             for (field in fields) {
                 val retainedField = field.retainAll(schema, markSet)
-                if (retainedField != null && markSet.contains(ProtoMember.get(enclosingType, field.name()))) {
+                if (retainedField != null && markSet.contains(ProtoMember.get(enclosingType, field.name))) {
                     result.add(retainedField)
                 }
             }
-            return result.build()
+            return result
         }
     }
 }

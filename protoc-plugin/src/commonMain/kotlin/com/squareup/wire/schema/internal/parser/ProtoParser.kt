@@ -15,25 +15,21 @@
  */
 package com.squareup.wire.schema.internal.parser
 
-import com.google.common.collect.List
-import com.google.common.collect.Range
 import com.squareup.wire.schema.Field
 import com.squareup.wire.schema.Location
 import com.squareup.wire.schema.ProtoFile
 import com.squareup.wire.schema.internal.Util
-import java.util.ArrayList
 
 /** Basic parser for `.proto` schema declarations.  */
-class ProtoParser internal constructor(location: Location, data: CharArray) {
+class ProtoParser internal constructor(private val location: Location, data: CharArray) {
     private val reader: SyntaxReader
 
-    private val fileBuilder: ProtoFileElement.Builder
-    private val publicImports = List.builder<String>()
-    private val imports = List.builder<String>()
-    private val nestedTypes = List.builder<TypeElement>()
-    private val services = List.builder<ServiceElement>()
-    private val extendsList = List.builder<ExtendElement>()
-    private val options = List.builder<OptionElement>()
+    private val publicImports = mutableListOf<String>()
+    private val imports = mutableListOf<String>()
+    private val nestedTypes = mutableListOf<TypeElement>()
+    private val services = mutableListOf<ServiceElement>()
+    private val extendsList = mutableListOf<ExtendElement>()
+    private val options = mutableListOf<OptionElement>()
 
     /** The number of declarations defined in the current file.  */
     private var declarationCount = 0
@@ -49,31 +45,27 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
 
     init {
         this.reader = SyntaxReader(data, location)
-        this.fileBuilder = ProtoFileElement.builder(location)
     }
 
     internal fun readProtoFile(): ProtoFileElement {
         while (true) {
             val documentation = reader.readDocumentation()
             if (reader.exhausted()) {
-                return fileBuilder.syntax(syntax)
-                        .publicImports(publicImports.build())
-                        .imports(imports.build())
-                        .types(nestedTypes.build())
-                        .services(services.build())
-                        .extendDeclarations(extendsList.build())
-                        .options(options.build())
-                        .build()
+                return ProtoFileElement(location = location, packageName = packageName,
+                        syntax = syntax,
+                        publicImports = publicImports,
+                        imports = imports,
+                        types = nestedTypes,
+                        services = services,
+                        extendDeclarations = extendsList,
+                        options = options)
             }
             val declaration = readDeclaration(documentation, Context.FILE)
-            if (declaration is TypeElement) {
-                nestedTypes.add((declaration as TypeElement?)!!)
-            } else if (declaration is ServiceElement) {
-                services.add((declaration as ServiceElement?)!!)
-            } else if (declaration is OptionElement) {
-                options.add((declaration as OptionElement?)!!)
-            } else if (declaration is ExtendElement) {
-                extendsList.add((declaration as ExtendElement?)!!)
+            when (declaration) {
+                is TypeElement -> nestedTypes.add((declaration as TypeElement?)!!)
+                is ServiceElement -> services.add((declaration as ServiceElement?)!!)
+                is OptionElement -> options.add((declaration as OptionElement?)!!)
+                is ExtendElement -> extendsList.add((declaration as ExtendElement?)!!)
             }
         }
     }
@@ -91,7 +83,6 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
             if (!context.permitsPackage()) throw reader.unexpected(location, "'package' in $context")
             if (packageName != null) throw reader.unexpected(location, "too many package names")
             packageName = reader.readName()
-            fileBuilder.packageName(packageName)
             prefix = packageName!! + "."
             reader.require(';')
             return null
@@ -116,7 +107,7 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
             try {
                 syntax = ProtoFile.Syntax.get(syntaxString)
             } catch (e: IllegalArgumentException) {
-                throw reader.unexpected(location, e.message)
+                throw reader.unexpected(location, e.message ?: "")
             }
 
             reader.require(';')
@@ -160,20 +151,17 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
     /** Reads a message declaration.  */
     private fun readMessage(location: Location, documentation: String): MessageElement {
         val name = reader.readName()
-        val builder = MessageElement.builder(location)
-                .name(name)
-                .documentation(documentation)
 
         val previousPrefix = prefix
         prefix = "$prefix$name."
 
-        val fields = List.builder<FieldElement>()
-        val oneOfs = List.builder<OneOfElement>()
-        val nestedTypes = List.builder<TypeElement>()
-        val extensions = List.builder<ExtensionsElement>()
-        val options = List.builder<OptionElement>()
-        val reserveds = List.builder<ReservedElement>()
-        val groups = List.builder<GroupElement>()
+        val fields = mutableListOf<FieldElement>()
+        val oneOfs = mutableListOf<OneOfElement>()
+        val nestedTypes = mutableListOf<TypeElement>()
+        val extensions = mutableListOf<ExtensionsElement>()
+        val options = mutableListOf<OptionElement>()
+        val reserveds = mutableListOf<ReservedElement>()
+        val groups = mutableListOf<GroupElement>()
 
         reader.require('{')
         while (true) {
@@ -202,25 +190,26 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
         }
         prefix = previousPrefix
 
-        return builder.fields(fields.build())
-                .oneOfs(oneOfs.build())
-                .nestedTypes(nestedTypes.build())
-                .extensions(extensions.build())
-                .options(options.build())
-                .reserveds(reserveds.build())
-                .groups(groups.build())
-                .build()
+        return MessageElement(
+                location = location,
+                name = name,
+                documentation = documentation,
+                fields = fields,
+                oneOfs = oneOfs,
+                nestedTypes = nestedTypes,
+                extensions = extensions,
+                options = options,
+                reserveds = reserveds,
+                groups = groups
+        )
     }
 
     /** Reads an extend declaration.  */
     private fun readExtend(location: Location, documentation: String): ExtendElement {
         val name = reader.readName()
-        val builder = ExtendElement.builder(location)
-                .name(name)
-                .documentation(documentation)
 
         reader.require('{')
-        val fields = List.builder<FieldElement>()
+        val fields = mutableListOf<FieldElement>()
         while (true) {
             val nestedDocumentation = reader.readDocumentation()
             if (reader.peekChar('}')) break
@@ -230,20 +219,20 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                 fields.add((declared as FieldElement?)!!)
             }
         }
-        return builder.fields(fields.build())
-                .build()
+        return ExtendElement(
+                location = location,
+                name = name,
+                documentation = documentation,
+                fields = fields)
     }
 
     /** Reads a service declaration and returns it.  */
     private fun readService(location: Location, documentation: String): ServiceElement {
         val name = reader.readName()
-        val builder = ServiceElement.builder(location)
-                .name(name)
-                .documentation(documentation)
 
         reader.require('{')
-        val rpcs = List.builder<RpcElement>()
-        val options = List.builder<OptionElement>()
+        val rpcs = mutableListOf<RpcElement>()
+        val options = mutableListOf<OptionElement>()
         while (true) {
             val rpcDocumentation = reader.readDocumentation()
             if (reader.peekChar('}')) break
@@ -255,20 +244,19 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                 options.add((declared as OptionElement?)!!)
             }
         }
-        return builder.options(options.build())
-                .rpcs(rpcs.build())
-                .build()
+        return ServiceElement(
+                location = location,
+                name = name,
+                documentation = documentation,
+                rpcs = rpcs)
     }
 
     /** Reads an enumerated type declaration and returns it.  */
     private fun readEnumElement(location: Location, documentation: String): EnumElement {
         val name = reader.readName()
-        val builder = EnumElement.builder(location)
-                .name(name)
-                .documentation(documentation)
 
-        val constants = List.builder<EnumConstantElement>()
-        val options = List.builder<OptionElement>()
+        val constants = mutableListOf<EnumConstantElement>()
+        val options = mutableListOf<OptionElement>()
         reader.require('{')
         while (true) {
             val valueDocumentation = reader.readDocumentation()
@@ -281,9 +269,11 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                 options.add((declared as OptionElement?)!!)
             }
         }
-        return builder.options(options.build())
-                .constants(constants.build())
-                .build()
+        return EnumElement(
+                location = location,
+                name = name,
+                documentation = documentation,
+                constants = constants)
     }
 
     private fun readField(documentation: String, location: Location, word: String): Any {
@@ -333,56 +323,52 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
 
     /** Reads an field declaration and returns it.  */
     private fun readField(
-            location: Location, documentation: String, @Nullable label: Field.Label?, type: String): FieldElement {
-        var documentation = documentation
+            location: Location, documentation: String, label: Field.Label?, type: String): FieldElement {
         val name = reader.readName()
         reader.require('=')
         val tag = reader.readInt()
 
-        val builder = FieldElement.builder(location)
-                .label(label)
-                .type(type)
-                .name(name)
-                .tag(tag)
 
-        var options: MutableList<OptionElement> = OptionReader(reader).readOptions()
+        var options: MutableList<OptionElement> = OptionReader(reader).readOptions().toMutableList()
         reader.require(';')
 
         options = ArrayList(options) // Mutable copy for extractDefault.
         val defaultValue = stripDefault(options)
 
-        documentation = reader.tryAppendTrailingDocumentation(documentation)
-        return builder.documentation(documentation)
-                .defaultValue(defaultValue)
-                .options(List.copyOf(options))
-                .build()
+        return FieldElement(
+                location = location,
+                label = label,
+                type = type,
+                name = name,
+                tag = tag,
+                documentation = reader.tryAppendTrailingDocumentation(documentation),
+                defaultValue = defaultValue,
+                options = options)
+
     }
 
     /**
      * Defaults aren't options. This finds an option named "default", removes, and returns it. Returns
      * null if no default option is present.
      */
-    @Nullable
     private fun stripDefault(options: MutableList<OptionElement>): String? {
         var result: String? = null
         val i = options.iterator()
         while (i.hasNext()) {
             val option = i.next()
-            if (option.name() == "default") {
+            if (option.name == "default") {
                 i.remove()
-                result = option.value().toString() // Defaults aren't options!
+                result = option.value.toString() // Defaults aren't options!
             }
         }
         return result
     }
 
     private fun readOneOf(documentation: String): OneOfElement {
-        val builder = OneOfElement.builder()
-                .name(reader.readName())
-                .documentation(documentation)
-        val fields = List.builder<FieldElement>()
-        val groups = List.builder<GroupElement>()
+        val fields = mutableListOf<FieldElement>()
+        val groups = mutableListOf<GroupElement>()
 
+        val name = reader.readName()
         reader.require('{')
         while (true) {
             val nestedDocumentation = reader.readDocumentation()
@@ -396,9 +382,11 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                 fields.add(readField(location, nestedDocumentation, null, type))
             }
         }
-        return builder.fields(fields.build())
-                .groups(groups.build())
-                .build()
+        return OneOfElement(
+                name = name,
+                documentation = documentation,
+                fields = fields,
+                groups = groups)
     }
 
     private fun readGroup(location: Location, documentation: String, label: Field.Label?): GroupElement {
@@ -406,12 +394,7 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
         reader.require('=')
         val tag = reader.readInt()
 
-        val builder = GroupElement.builder(location)
-                .label(label)
-                .name(name)
-                .tag(tag)
-                .documentation(documentation)
-        val fields = List.builder<FieldElement>()
+        val fields = mutableListOf<FieldElement>()
 
         reader.require('{')
         while (true) {
@@ -426,19 +409,23 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
             }
             fields.add(field)
         }
-
-        return builder.fields(fields.build())
-                .build()
+        return GroupElement(
+                location = location,
+                label = label,
+                name = name,
+                tag = tag,
+                documentation = documentation,
+                fields = fields)
     }
 
     /** Reads a reserved tags and names list like "reserved 10, 12 to 14, 'foo';".  */
     private fun readReserved(location: Location, documentation: String): ReservedElement {
-        val valuesBuilder = List.builder<Any>()
+        val values = mutableListOf<Any>()
 
         while (true) {
             var c = reader.peekChar()
             if (c == '"' || c == '\'') {
-                valuesBuilder.add(reader.readQuotedString())
+                values.add(reader.readQuotedString())
             } else {
                 val tagStart = reader.readInt()
 
@@ -448,9 +435,9 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                         throw reader.unexpected("expected ',', ';', or 'to'")
                     }
                     val tagEnd = reader.readInt()
-                    valuesBuilder.add(Range.closed(tagStart, tagEnd))
+                    values.add(tagStart..tagEnd)
                 } else {
-                    valuesBuilder.add(tagStart)
+                    values.add(tagStart)
                 }
             }
             c = reader.readChar()
@@ -458,11 +445,10 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
             if (c != ',') throw reader.unexpected("expected ',' or ';'")
         }
 
-        val values = valuesBuilder.build()
         if (values.isEmpty()) {
             throw reader.unexpected("'reserved' must have at least one field name or tag")
         }
-        return ReservedElement.create(location, documentation, values)
+        return ReservedElement(location, documentation, values)
     }
 
     /** Reads extensions like "extensions 101;" or "extensions 101 to max;".  */
@@ -475,66 +461,60 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
             if (s == "max") {
                 end = Util.MAX_TAG_VALUE
             } else {
-                end = Integer.parseInt(s)
+                end = s.toInt()
             }
         }
         reader.require(';')
-        return ExtensionsElement.create(location, start, end, documentation)
+        return ExtensionsElement(location, documentation, start, end)
     }
 
     /** Reads an enum constant like "ROCK = 0;". The label is the constant name.  */
     private fun readEnumConstant(
             documentation: String, location: Location, label: String): EnumConstantElement {
-        var documentation = documentation
         reader.require('=')
 
         val tag = reader.readInt()
 
         val options = OptionReader(reader).readOptions()
         reader.require(';')
-        documentation = reader.tryAppendTrailingDocumentation(documentation)
 
-        return EnumConstantElement.builder(location)
-                .name(label)
-                .tag(tag)
-                .documentation(documentation)
-                .options(options)
-                .build()
+        return EnumConstantElement(
+                location = location,
+                name = label,
+                tag = tag,
+                documentation = reader.tryAppendTrailingDocumentation(documentation),
+                options = options)
     }
 
     /** Reads an rpc and returns it.  */
     private fun readRpc(location: Location, documentation: String): RpcElement {
-        val builder = RpcElement.builder(location)
-                .name(reader.readName())
-                .documentation(documentation)
+
+        val name = reader.readName()
 
         reader.require('(')
-        var type: String
         var word = reader.readWord()
-        if (word == "stream") {
-            builder.requestStreaming(true)
-            type = reader.readDataType()
+        val requestStreaming = word == "stream"
+        val requestType = if (requestStreaming) {
+            reader.readDataType()
         } else {
-            type = reader.readDataType(word)
+            reader.readDataType(word)
         }
-        builder.requestType(type)
         reader.require(')')
 
         if (reader.readWord() != "returns") throw reader.unexpected("expected 'returns'")
 
         reader.require('(')
         word = reader.readWord()
-        if (word == "stream") {
-            builder.responseStreaming(true)
-            type = reader.readDataType()
+        val responseStreaming = word == "stream"
+        val responseType = if (responseStreaming) {
+            reader.readDataType()
         } else {
-            type = reader.readDataType(word)
+            reader.readDataType(word)
         }
-        builder.responseType(type)
         reader.require(')')
 
+        val options = mutableListOf<OptionElement>()
         if (reader.peekChar('{')) {
-            val options = List.builder<OptionElement>()
             while (true) {
                 val rpcDocumentation = reader.readDocumentation()
                 if (reader.peekChar('}')) {
@@ -545,12 +525,21 @@ class ProtoParser internal constructor(location: Location, data: CharArray) {
                     options.add((declared as OptionElement?)!!)
                 }
             }
-            builder.options(options.build())
         } else {
             reader.require(';')
         }
 
-        return builder.build()
+        return RpcElement(
+                location = location,
+                name = reader.readName(),
+                documentation = documentation,
+                requestType = requestType,
+                requestStreaming = requestStreaming,
+                responseType = responseType,
+                responseStreaming = responseStreaming,
+                options = options
+        )
+
     }
 
     internal enum class Context {

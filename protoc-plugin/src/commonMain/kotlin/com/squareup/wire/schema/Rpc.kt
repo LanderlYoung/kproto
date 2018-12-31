@@ -15,45 +15,22 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.parser.RpcElement
 
-class Rpc private constructor(private val location: Location, private val name: String, private val documentation: String, private val requestTypeElement: String,
-                              private val responseTypeElement: String, private val requestStreaming: Boolean, private val responseStreaming: Boolean, private val options: Options) {
-    private var requestType: ProtoType? = null
-    private var responseType: ProtoType? = null
+class Rpc private constructor(
+        val location: Location,
+        val name: String,
+        val documentation: String,
+        private val requestTypeElement: String,
+        private val responseTypeElement: String,
+        val requestStreaming: Boolean,
+        val responseStreaming: Boolean,
+        val options: Options) {
 
-    fun location(): Location {
-        return location
-    }
-
-    fun name(): String {
-        return name
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun requestType(): ProtoType? {
-        return requestType
-    }
-
-    fun responseType(): ProtoType? {
-        return responseType
-    }
-
-    fun requestStreaming(): Boolean {
-        return requestStreaming
-    }
-
-    fun responseStreaming(): Boolean {
-        return responseStreaming
-    }
-
-    fun options(): Options {
-        return options
-    }
+    var requestType: ProtoType? = null
+        private set
+    var responseType: ProtoType? = null
+        private set
 
     internal fun link(linker: Linker) {
         var linker = linker
@@ -71,8 +48,8 @@ class Rpc private constructor(private val location: Location, private val name: 
     internal fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
-        linker.validateImport(location(), requestType!!)
-        linker.validateImport(location(), responseType!!)
+        linker.validateImport(location, requestType!!)
+        linker.validateImport(location, responseType!!)
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet): Rpc? {
@@ -87,30 +64,30 @@ class Rpc private constructor(private val location: Location, private val name: 
     companion object {
 
         internal fun fromElements(elements: List<RpcElement>): List<Rpc> {
-            val rpcs = List.Builder<Rpc>()
+            val rpcs = mutableListOf<Rpc>()
             for (rpcElement in elements) {
-                rpcs.add(Rpc(rpcElement.location(), rpcElement.name(), rpcElement.documentation(),
-                        rpcElement.requestType(), rpcElement.responseType(),
-                        rpcElement.requestStreaming(), rpcElement.responseStreaming(),
-                        Options(Options.METHOD_OPTIONS, rpcElement.options())))
+                rpcs.add(Rpc(rpcElement.location, rpcElement.name, rpcElement.documentation,
+                        rpcElement.requestType, rpcElement.responseType,
+                        rpcElement.requestStreaming, rpcElement.responseStreaming,
+                        Options(Options.METHOD_OPTIONS, rpcElement.options)))
             }
-            return rpcs.build()
+            return rpcs
         }
 
         internal fun toElements(rpcs: List<Rpc>): List<RpcElement> {
-            val elements = List.Builder<RpcElement>()
+            val elements = mutableListOf<RpcElement>()
             for (rpc in rpcs) {
-                elements.add(RpcElement.builder(rpc.location)
-                        .documentation(rpc.documentation)
-                        .name(rpc.name)
-                        .requestType(rpc.requestTypeElement)
-                        .responseType(rpc.responseTypeElement)
-                        .requestStreaming(rpc.requestStreaming)
-                        .responseStreaming(rpc.responseStreaming)
-                        .options(rpc.options.toElements())
-                        .build())
+                elements.add(RpcElement(
+                        location = rpc.location,
+                        documentation=rpc.documentation,
+                        name=rpc.name,
+                        requestType=rpc.requestTypeElement,
+                        responseType=rpc.responseTypeElement,
+                        requestStreaming=rpc.requestStreaming,
+                        responseStreaming=rpc.responseStreaming,
+                        options=rpc.options.toElements()))
             }
-            return elements.build()
+            return elements
         }
     }
 }

@@ -28,7 +28,7 @@ data class ProtoFileElement(
         val types: List<TypeElement> = listOf(),
         val services: List<ServiceElement> = listOf(),
         val extendDeclarations: List<ExtendElement> = listOf(),
-        val options: Collection<OptionElement> = listOf()
+        val options: List<OptionElement> = listOf()
 
 ) {
 

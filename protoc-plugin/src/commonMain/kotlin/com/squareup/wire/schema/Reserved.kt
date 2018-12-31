@@ -15,8 +15,6 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import com.google.common.collect.Range
 import com.squareup.wire.schema.internal.parser.ReservedElement
 
 internal class Reserved private constructor(private val location: Location, private val documentation: String, private val values: List<Any>) {
@@ -38,7 +36,7 @@ internal class Reserved private constructor(private val location: Location, priv
             if (value is Int && tag == value) {
                 return true
             }
-            if (value is Range<*> && (value as Range<Int>).contains(tag)) {
+            if (value is IntRange && value.contains(tag)) {
                 return true
             }
         }
@@ -57,20 +55,19 @@ internal class Reserved private constructor(private val location: Location, priv
     companion object {
 
         fun fromElements(reserveds: List<ReservedElement>): List<Reserved> {
-            val builder = List.builder<Reserved>()
+            val builder = mutableListOf<Reserved>()
             for (reserved in reserveds) {
-                builder.add(Reserved(reserved.location(), reserved.documentation(), reserved.values()))
+                builder.add(Reserved(reserved.location, reserved.documentation, reserved.values))
             }
-            return builder.build()
+            return builder
         }
 
         fun toElements(reserveds: List<Reserved>): List<ReservedElement> {
-            val builder = List.builder<ReservedElement>()
+            val builder = mutableListOf<ReservedElement>()
             for (reserved in reserveds) {
-                builder.add(
-                        ReservedElement.create(reserved.location(), reserved.documentation(), reserved.values()))
+                builder.add( ReservedElement(reserved.location(), reserved.documentation(), reserved.values()))
             }
-            return builder.build()
+            return builder
         }
     }
 }

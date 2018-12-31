@@ -15,22 +15,12 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
 import com.squareup.wire.schema.internal.parser.OneOfElement
 
-class OneOf private constructor(private val name: String, private val documentation: String, private val fields: List<Field>) {
-
-    fun name(): String {
-        return name
-    }
-
-    fun documentation(): String {
-        return documentation
-    }
-
-    fun fields(): List<Field> {
-        return fields
-    }
+class OneOf private constructor(
+        val name: String,
+        val documentation: String,
+        val fields: List<Field>) {
 
     internal fun link(linker: Linker) {
         for (field in fields) {
@@ -51,30 +41,29 @@ class OneOf private constructor(private val name: String, private val documentat
 
     companion object {
 
-        internal fun fromElements(packageName: String,
+        internal fun fromElements(packageName: String?,
                                   elements: List<OneOfElement>, extension: Boolean): List<OneOf> {
-            val oneOfs = List.builder<OneOf>()
+            val oneOfs = mutableListOf<OneOf>()
             for (oneOf in elements) {
-                if (!oneOf.groups().isEmpty()) {
-                    val group = oneOf.groups()[0]
-                    throw IllegalStateException(group.location().toString() + ": 'group' is not supported")
+                if (!oneOf.groups.isEmpty()) {
+                    val group = oneOf.groups[0]
+                    throw IllegalStateException(group.location.toString() + ": 'group' is not supported")
                 }
-                oneOfs.add(OneOf(oneOf.name(), oneOf.documentation(),
-                        Field.fromElements(packageName, oneOf.fields(), extension)))
+                oneOfs.add(OneOf(oneOf.name, oneOf.documentation,
+                        Field.fromElements(packageName, oneOf.fields, extension)))
             }
-            return oneOfs.build()
+            return oneOfs
         }
 
         internal fun toElements(oneOfs: List<OneOf>): List<OneOfElement> {
-            val elements = List.Builder<OneOfElement>()
+            val elements = mutableListOf<OneOfElement>()
             for (oneOf in oneOfs) {
-                elements.add(OneOfElement.builder()
-                        .documentation(oneOf.documentation)
-                        .name(oneOf.name)
-                        .fields(Field.toElements(oneOf.fields))
-                        .build())
+                elements.add(OneOfElement(
+                        documentation=oneOf.documentation,
+                        name=oneOf.name,
+                        fields=Field.toElements(oneOf.fields)))
             }
-            return elements.build()
+            return elements
         }
     }
 }

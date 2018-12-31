@@ -3,18 +3,6 @@ apply plugin: 'kotlinx-serialization'
 
 kotlin {
     targets {
-        // this is a ENV generated in XCode build context
-//        final def sdkName = System.getenv('SDK_NAME')
-//        final def iOSTarget = sdkName?.startsWith("iphoneos") ?
-//                // build to iphone devices
-//                presets.iosArm64 :
-//                // build to simulator
-//                presets.iosX64
-//
-//        fromPreset(iOSTarget, 'iOS') {
-//            compilations.main.outputKinds('FRAMEWORK')
-//        }
-
         fromPreset(presets.jvm, 'jvm') {
 //            compilations.main.outputKinds('JAR')
         }

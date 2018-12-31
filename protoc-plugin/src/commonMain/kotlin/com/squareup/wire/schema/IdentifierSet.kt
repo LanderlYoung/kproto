@@ -15,10 +15,6 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.ImmutableSet
-import com.google.common.collect.Sets
-import java.util.LinkedHashSet
-
 /**
  * A heterogeneous set of rules to include and exclude types and members. If a member is included in
  * the set, its type is implicitly also included. A type that is included without a specific member
@@ -53,8 +49,8 @@ import java.util.LinkedHashSet
  * Despite the builder, instances of this class are not safe for concurrent use.
  */
 class IdentifierSet private constructor(builder: Builder) {
-    private val includes: ImmutableSet<String>
-    private val excludes: ImmutableSet<String>
+    private val includes: Set<String>
+    private val excludes: Set<String>
     private val usedIncludes = LinkedHashSet<String>()
     private val usedExcludes = LinkedHashSet<String>()
 
@@ -62,8 +58,8 @@ class IdentifierSet private constructor(builder: Builder) {
         get() = includes.isEmpty() && excludes.isEmpty()
 
     init {
-        this.includes = builder.includes.build()
-        this.excludes = builder.excludes.build()
+        this.includes = builder.includes
+        this.excludes = builder.excludes
     }
 
     /** Returns true if `type` is a root.  */
@@ -137,16 +133,16 @@ class IdentifierSet private constructor(builder: Builder) {
     }
 
     fun unusedIncludes(): Set<String> {
-        return Sets.difference(includes, usedIncludes)
+        return includes + usedExcludes - includes.intersect(usedExcludes)
     }
 
     fun unusedExcludes(): Set<String> {
-        return Sets.difference(excludes, usedExcludes)
+        return excludes + usedExcludes - excludes.intersect(usedExcludes)
     }
 
     class Builder {
-        internal val includes: ImmutableSet.Builder<String> = ImmutableSet.builder()
-        internal val excludes: ImmutableSet.Builder<String> = ImmutableSet.builder()
+        internal val includes: MutableSet<String> = mutableSetOf()
+        internal val excludes: MutableSet<String> = mutableSetOf()
 
         fun include(identifier: String?): Builder {
             if (identifier == null) throw NullPointerException("identifier == null")

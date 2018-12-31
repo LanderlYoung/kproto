@@ -15,67 +15,58 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
+import com.squareup.wire.schema.Options.Companion.FILE_OPTIONS
 import com.squareup.wire.schema.internal.parser.ProtoFileElement
 
-import com.squareup.wire.schema.Options.FILE_OPTIONS
+class ProtoFile private constructor(
+        val location: Location,
+        val imports: List<String>,
+        val publicImports: List<String>,
+        val packageName: String? = null,
+        val types: List<Type>,
+        val services: List<Service>,
+        val extendList: List<Extend>,
+        val options: Options,
+        private val syntax: Syntax?) {
 
-class ProtoFile private constructor(private val location: Location, private val imports: List<String>,
-                                    private val publicImports: List<String>, private val packageName: String, private val types: List<Type>,
-                                    private val services: List<Service>, private val extendList: List<Extend>, private val options: Options,
-                                    private val syntax: Syntax) {
-    private var javaPackage: Any? = null
+    private var _kotlinPackage: Any? = null
 
     internal fun toElement(): ProtoFileElement {
-        return ProtoFileElement.builder(location)
-                .imports(imports)
-                .publicImports(publicImports)
-                .packageName(packageName)
-                .types(Type.toElements(types))
-                .services(Service.toElements(services))
-                .extendDeclarations(Extend.toElements(extendList))
-                .options(options.toElements())
-                .syntax(syntax)
-                .build()
-    }
-
-    fun location(): Location {
-        return location
-    }
-
-    internal fun imports(): List<String> {
-        return imports
-    }
-
-    internal fun publicImports(): List<String> {
-        return publicImports
+        return ProtoFileElement(
+                location = location,
+                imports = imports,
+                publicImports = publicImports,
+                packageName = packageName,
+                types = Type.toElements(types),
+                services = Service.toElements(services),
+                extendDeclarations = Extend.toElements(extendList),
+                options = options.toElements(),
+                syntax = syntax)
     }
 
     /**
      * Returns the name of this proto file, like `simple_message` for `squareup/protos/person/simple_message.proto`.
      */
-    fun name(): String {
-        var result = location().path()
+    val name: String
+        get() {
+            var result = location.path
 
-        val slashIndex = result.lastIndexOf('/')
-        if (slashIndex != -1) {
-            result = result.substring(slashIndex + 1)
+            val slashIndex = result.lastIndexOf('/')
+            if (slashIndex != -1) {
+                result = result.substring(slashIndex + 1)
+            }
+
+            if (result.endsWith(".proto")) {
+                result = result.substring(0, result.length - ".proto".length)
+            }
+
+            return result
         }
 
-        if (result.endsWith(".proto")) {
-            result = result.substring(0, result.length - ".proto".length)
+    val kotlinPackage: String?
+        get() {
+            return _kotlinPackage?.toString()
         }
-
-        return result
-    }
-
-    fun packageName(): String {
-        return packageName
-    }
-
-    fun javaPackage(): String? {
-        return if (javaPackage != null) javaPackage.toString() else null
-    }
 
     fun types(): List<Type> {
         return types
@@ -95,7 +86,7 @@ class ProtoFile private constructor(private val location: Location, private val 
 
     /** Returns a new proto file that omits types and services not in `identifiers`.  */
     internal fun retainAll(schema: Schema, markSet: MarkSet): ProtoFile {
-        val retainedTypes = List.builder<Type>()
+        val retainedTypes = mutableListOf<Type>()
         for (type in types) {
             val retainedType = type.retainAll(schema, markSet)
             if (retainedType != null) {
@@ -103,7 +94,7 @@ class ProtoFile private constructor(private val location: Location, private val 
             }
         }
 
-        val retainedServices = List.builder<Service>()
+        val retainedServices = mutableListOf<Service>()
         for (service in services) {
             val retainedService = service.retainAll(schema, markSet)
             if (retainedService != null) {
@@ -112,19 +103,19 @@ class ProtoFile private constructor(private val location: Location, private val 
         }
 
         val result = ProtoFile(location, imports, publicImports, packageName,
-                retainedTypes.build(), retainedServices.build(), extendList,
+                retainedTypes, retainedServices, extendList,
                 options.retainAll(schema, markSet), syntax)
-        result.javaPackage = javaPackage
+        result._kotlinPackage = _kotlinPackage
         return result
     }
 
     internal fun linkOptions(linker: Linker) {
         options.link(linker)
-        javaPackage = options().get(JAVA_PACKAGE)
+        _kotlinPackage = options[KOTLIN_PACKAGE] ?: options[JAVA_PACKAGE]
     }
 
     override fun toString(): String {
-        return location().path()
+        return location.path
     }
 
     fun toSchema(): String {
@@ -152,22 +143,23 @@ class ProtoFile private constructor(private val location: Location, private val 
     }
 
     companion object {
-        internal val JAVA_PACKAGE = ProtoMember.get(FILE_OPTIONS, "java_package")
+        internal val JAVA_PACKAGE = ProtoMember[FILE_OPTIONS, "java_package"]
+        internal val KOTLIN_PACKAGE = ProtoMember[FILE_OPTIONS, "kotlin_package"]
 
         internal operator fun get(protoFileElement: ProtoFileElement): ProtoFile {
-            val packageName = protoFileElement.packageName()
+            val packageName = protoFileElement.packageName
 
-            val types = Type.fromElements(packageName, protoFileElement.types())
+            val types = Type.fromElements(packageName, protoFileElement.types)
 
-            val services = Service.fromElements(packageName, protoFileElement.services())
+            val services = Service.fromElements(packageName, protoFileElement.services)
 
-            val wireExtends = Extend.fromElements(packageName, protoFileElement.extendDeclarations())
+            val wireExtends = Extend.fromElements(packageName, protoFileElement.extendDeclarations)
 
-            val options = Options(Options.FILE_OPTIONS, protoFileElement.options())
+            val options = Options(Options.FILE_OPTIONS, protoFileElement.options)
 
-            return ProtoFile(protoFileElement.location(), protoFileElement.imports(),
-                    protoFileElement.publicImports(), packageName, types, services, wireExtends, options,
-                    protoFileElement.syntax())
+            return ProtoFile(protoFileElement.location, protoFileElement.imports,
+                    protoFileElement.publicImports, packageName, types, services, wireExtends, options,
+                    protoFileElement.syntax)
         }
     }
 }

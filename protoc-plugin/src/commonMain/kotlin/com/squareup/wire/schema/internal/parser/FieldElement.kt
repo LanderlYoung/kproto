@@ -25,7 +25,7 @@ data class FieldElement(
         val label: Field.Label?,
         val type: String,
         val name: String,
-        val defaultValue: String,
+        val defaultValue: String?,
         val tag: Int,
         val documentation: String = "",
         val options: List<OptionElement> = listOf()

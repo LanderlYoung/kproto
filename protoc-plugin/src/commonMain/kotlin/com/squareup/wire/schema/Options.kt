@@ -15,17 +15,8 @@
  */
 package com.squareup.wire.schema
 
-import com.google.common.collect.List
-import com.google.common.collect.ImmutableMap
-import com.google.common.collect.LinkedHashMultimap
-import com.google.common.collect.Multimap
+import com.squareup.wire.schema.internal.Multimap
 import com.squareup.wire.schema.internal.parser.OptionElement
-import java.util.LinkedHashMap
-import java.util.regex.Matcher
-import java.util.regex.Pattern
-
-import com.google.common.base.Preconditions.checkNotNull
-import com.google.common.collect.Iterables.getOnlyElement
 
 /**
  * A set of options declared on a message declaration, field declaration, enum declaration, enum
@@ -34,28 +25,20 @@ import com.google.common.collect.Iterables.getOnlyElement
  * messages.
  */
 class Options(private val optionType: ProtoType, elements: List<OptionElement>) {
-    private val optionElements: List<OptionElement>
-    private var map: Map<ProtoMember, Any>? = null
-
-    init {
-        this.optionElements = elements
-    }
-
+    private val optionElements: List<OptionElement> = elements
     /**
-     * Returns a map with the values for these options. Map values may be either a single entry, like
+     * A map with the values for these options. Map values may be either a single entry, like
      * `{deprecated: "true"}`, or more sophisticated, with nested maps and lists.
      *
      *
      * The map keys are always [ProtoMember] instances, even for nested maps. The values are
      * always either lists, maps, or strings.
      */
-    fun map(): Map<ProtoMember, Any>? {
-        return map
-    }
+    lateinit var map: Map<ProtoMember, Any>
+        private set
 
-    operator fun get(protoMember: ProtoMember): Any {
-        checkNotNull(protoMember, "protoMember")
-        return map!![protoMember]
+    operator fun get(protoMember: ProtoMember): Any? {
+        return map[protoMember]
     }
 
     /**
@@ -63,13 +46,14 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
      * provided: its name matches the option's name and its value matches the option's value.
      */
     fun optionMatches(namePattern: String, valuePattern: String): Boolean {
-        val nameMatcher = Regex.fromLiteral(namePattern).matchEntire("")
-        val valueMatcher = Pattern.compile(valuePattern).matcher("")
-        for ((key, value) in map!!) {
-            if (nameMatcher.reset(key.member()).matches() && valueMatcher.reset(value.toString()).matches()) {
+        val nameRegex = Regex.fromLiteral(namePattern)
+        val valueRegex = valuePattern.toRegex()
+        for ((key, value) in map) {
+            if (nameRegex.matches(key.member) && valueRegex.matches(value.toString())) {
                 return true
             }
         }
+
         return false
     }
 
@@ -78,7 +62,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     internal fun link(linker: Linker) {
-        var map = ImmutableMap.of<ProtoMember, Any>()
+        var map = mapOf<ProtoMember, Any>()
         for (option in optionElements) {
             val canonicalOption = canonicalizeOption(linker, optionType, option)
             if (canonicalOption != null) {
@@ -95,19 +79,19 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
                 ?: return null // No known extensions for the given extension type.
 
         var path: Array<String>?
-        var field = type.field(option.name())
+        var field = type.field(option.name)
         if (field != null) {
             // This is an option declared by descriptor.proto.
-            path = arrayOf(option.name())
+            path = arrayOf(option.name)
         } else {
             // This is an option declared by an extension.
             val extensionsForType = type.extensionFieldsMap()
 
-            path = resolveFieldPath(option.name(), extensionsForType.keys)
+            path = resolveFieldPath(option.name, extensionsForType.keys)
             val packageName = linker.packageName()
             if (path == null && packageName != null) {
                 // If the path couldn't be resolved, attempt again by prefixing it with the package name.
-                path = resolveFieldPath(packageName + "." + option.name(), extensionsForType.keys)
+                path = resolveFieldPath(packageName + "." + option.name, extensionsForType.keys)
             }
             if (path == null) {
                 return null // Unable to find the root of this field path.
@@ -118,11 +102,11 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
 
         val result = LinkedHashMap<ProtoMember, Any>()
         var last: MutableMap<ProtoMember, Any> = result
-        var lastProtoType: ProtoType? = type.type()
+        var lastProtoType: ProtoType = type.type
         for (i in 1 until path.size) {
             val nested = LinkedHashMap<ProtoMember, Any>()
-            last[ProtoMember.get(lastProtoType, field!!)] = nested
-            lastProtoType = field.type()
+            last[ProtoMember[lastProtoType, field!!]] = nested
+            lastProtoType = field.type!!
             last = nested
             field = linker.dereference(field, path[i])
             if (field == null) {
@@ -130,44 +114,44 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
             }
         }
 
-        last[ProtoMember.get(lastProtoType, field!!)] = canonicalizeValue(linker, field, option.value())
+        last[ProtoMember[lastProtoType, field!!]] = canonicalizeValue(linker, field, option.value)
         return result
     }
 
     private fun canonicalizeValue(linker: Linker, context: Field, value: Any): Any {
         if (value is OptionElement) {
-            val result = ImmutableMap.builder<ProtoMember, Any>()
-            val field = linker.dereference(context, value.name())
+            val result = mutableMapOf<ProtoMember, Any>()
+            val field = linker.dereference(context, value.name)
             if (field == null) {
-                linker.addError("unable to resolve option %s on %s", value.name(), context.type())
+                linker.addError("unable to resolve option %s on %s", value.name, context.type)
             } else {
-                val protoMember = ProtoMember.get(context.type(), field)
-                result.put(protoMember, canonicalizeValue(linker, field, value.value()))
+                val protoMember = ProtoMember.get(context.type, field)
+                result.put(protoMember, canonicalizeValue(linker, field, value.value))
             }
-            return coerceValueForField(context, result.build())
+            return coerceValueForField(context, result)
         }
 
         if (value is Map<*, *>) {
-            val result = ImmutableMap.builder<ProtoMember, Any>()
+            val result = mutableMapOf<ProtoMember, Any>()
             for ((key, value1) in value) {
                 val name = key as String
                 val field = linker.dereference(context, name)
                 if (field == null) {
-                    linker.addError("unable to resolve option %s on %s", name, context.type())
+                    linker.addError("unable to resolve option %s on %s", name, context.type)
                 } else {
-                    val protoMember = ProtoMember.get(context.type(), field)
-                    result.put(protoMember, canonicalizeValue(linker, field, value1))
+                    val protoMember = ProtoMember.get(context.type, field)
+                    result[protoMember] = canonicalizeValue(linker, field, value1!!)
                 }
             }
-            return coerceValueForField(context, result.build())
+            return coerceValueForField(context, result)
         }
 
         if (value is List<*>) {
-            val result = List.builder<Any>()
+            val result = mutableListOf<Any>()
             for (element in value) {
-                result.addAll(canonicalizeValue(linker, context, element) as List<*>)
+                result.addAll(canonicalizeValue(linker, context, element!!) as List<Any>)
             }
-            return coerceValueForField(context, result.build())
+            return coerceValueForField(context, result)
         }
 
         if (value is String) {
@@ -181,7 +165,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
         return if (context.isRepeated) {
             value as? List<*> ?: listOf(value)
         } else {
-            if (value is List<*>) getOnlyElement<Any>(value) else value
+            if (value is List<*>) value.first()!! else value
         }
     }
 
@@ -198,22 +182,26 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     private fun union(
-            linker: Linker, a: Map<ProtoMember, Any>, b: Map<ProtoMember, Any>): ImmutableMap<ProtoMember, Any> {
+            linker: Linker, a: Map<ProtoMember, Any>, b: Map<ProtoMember, Any>): Map<ProtoMember, Any> {
         val result = LinkedHashMap(a)
         for ((key, bValue) in b) {
             val aValue = result[key]
             val union = if (aValue != null) union(linker, aValue, bValue) else bValue
             result[key] = union
         }
-        return ImmutableMap.copyOf(result)
+        return result
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun union(a: List<*>, b: List<*>): List<Any> {
-        return List.builder<Any>().addAll(a).addAll(b).build()
+        return mutableListOf<Any>().apply {
+            addAll(a as List<Any>)
+            addAll(b as List<Any>)
+        }
     }
 
     internal fun fields(): Multimap<ProtoType, ProtoMember> {
-        val result = LinkedHashMultimap.create<ProtoType, ProtoMember>()
+        val result = Multimap<ProtoType, ProtoMember>()
         gatherFields(result, optionType, map)
         return result
     }
@@ -223,7 +211,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
             for ((key, value) in o) {
                 val protoMember = key as ProtoMember
                 sink.put(type, protoMember)
-                gatherFields(sink, protoMember.type(), value)
+                gatherFields(sink, protoMember.type, value)
             }
         } else if (o is List<*>) {
             for (e in (o as List<*>?)!!) {
@@ -233,13 +221,13 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet): Options {
-        if (map!!.isEmpty()) return this // Nothing to prune.
+        if (map.isEmpty()) return this // Nothing to prune.
         val result = Options(optionType, optionElements)
         val mapOrNull = retainAll(schema, markSet, optionType, map)
         result.map = if (mapOrNull != null)
-            mapOrNull as ImmutableMap<ProtoMember, Any>?
+            mapOrNull as Map<ProtoMember, Any>
         else
-            ImmutableMap.of()
+            mapOf()
         return result
     }
 
@@ -249,28 +237,27 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
             return null // Prune this type.
 
         } else if (o is Map<*, *>) {
-            val builder = ImmutableMap.builder<ProtoMember, Any>()
+            val builder = mutableMapOf<ProtoMember, Any>()
             for ((key, value) in o) {
                 val protoMember = key as ProtoMember
                 if (!markSet.contains(protoMember)) continue // Prune this field.
                 val field = schema.getField(protoMember)
-                val retainedValue = retainAll(schema, markSet, field!!.type(), value)
+                val retainedValue = retainAll(schema, markSet, field!!.type, value!!)
                 if (retainedValue != null) {
-                    builder.put(protoMember, retainedValue) // This retained field is non-empty.
+                    builder[protoMember] = retainedValue // This retained field is non-empty.
                 }
             }
-            val map = builder.build()
+            val map = builder
             return if (!map.isEmpty()) map else null
 
         } else if (o is List<*>) {
-            val builder = List.builder<Any>()
+            val list = mutableListOf<Any>()
             for (value in o) {
-                val retainedValue = retainAll(schema, markSet, type, value)
+                val retainedValue = retainAll(schema, markSet, type, value!!)
                 if (retainedValue != null) {
-                    builder.add(retainedValue) // This retained value is non-empty.
+                    list.add(retainedValue) // This retained value is non-empty.
                 }
             }
-            val list = builder.build()
             return if (!list.isEmpty()) list else null
 
         } else {
@@ -279,13 +266,13 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     companion object {
-        val FILE_OPTIONS = ProtoType.get("google.protobuf.FileOptions")
-        val MESSAGE_OPTIONS = ProtoType.get("google.protobuf.MessageOptions")
-        val FIELD_OPTIONS = ProtoType.get("google.protobuf.FieldOptions")
-        val ENUM_OPTIONS = ProtoType.get("google.protobuf.EnumOptions")
-        val ENUM_VALUE_OPTIONS = ProtoType.get("google.protobuf.EnumValueOptions")
-        val SERVICE_OPTIONS = ProtoType.get("google.protobuf.ServiceOptions")
-        val METHOD_OPTIONS = ProtoType.get("google.protobuf.MethodOptions")
+        val FILE_OPTIONS = ProtoType["google.protobuf.FileOptions"]
+        val MESSAGE_OPTIONS = ProtoType["google.protobuf.MessageOptions"]
+        val FIELD_OPTIONS = ProtoType["google.protobuf.FieldOptions"]
+        val ENUM_OPTIONS = ProtoType["google.protobuf.EnumOptions"]
+        val ENUM_VALUE_OPTIONS = ProtoType["google.protobuf.EnumValueOptions"]
+        val SERVICE_OPTIONS = ProtoType["google.protobuf.ServiceOptions"]
+        val METHOD_OPTIONS = ProtoType["google.protobuf.MethodOptions"]
 
         /**
          * Given a path like `a.b.c.d` and a set of paths like `{a.b.c, a.f.g, h.j}`, this
