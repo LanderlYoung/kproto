@@ -25,6 +25,7 @@ class SchemaTest {
         val loader = SchemaLoader()
         loader.addSource(File("src/commonTest/resources/proto"))
         loader.addProto("all_types.proto")
+        loader.addProto("one_of.proto")
 
         val schema = loader.load()
 

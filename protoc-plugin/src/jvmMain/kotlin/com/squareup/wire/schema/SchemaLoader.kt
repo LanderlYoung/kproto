@@ -597,6 +597,9 @@ message FileOptions {
   // determining the namespace.
   optional string php_namespace = 41;
 
+  // for kotlin
+  optional string kotlin_package = 45;
+
   // The parser stores options it doesn't recognize here.
   // See the documentation for the "Options" section above.
   repeated UninterpretedOption uninterpreted_option = 999;

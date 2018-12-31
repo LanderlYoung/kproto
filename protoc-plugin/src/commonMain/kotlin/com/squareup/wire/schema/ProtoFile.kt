@@ -64,9 +64,7 @@ class ProtoFile private constructor(
         }
 
     val kotlinPackage: String?
-        get() {
-            return _kotlinPackage?.toString()
-        }
+        get() = _kotlinPackage?.toString()
 
     fun types(): List<Type> {
         return types
