@@ -1,4 +1,4 @@
-package kotlin.workaround
+package kn.workaround
 
 /**
  * <pre>
@@ -8,6 +8,5 @@ package kotlin.workaround
  * Life with Passion, Code with Creativity.
  * </pre>
  */
-
 
 actual fun String._format(vararg args: Any) = this.format(args = *args)

@@ -17,7 +17,7 @@ package com.squareup.wire.schema
 
 import com.squareup.wire.schema.internal.Multimap
 import com.squareup.wire.schema.internal.Util
-import kotlin.workaround._format
+import kn.workaround._format
 
 /** Links local field types and option types to the corresponding declarations.  */
 internal class Linker {

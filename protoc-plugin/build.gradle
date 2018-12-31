@@ -14,10 +14,22 @@ kotlin {
             api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
             implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version"
         }
+        commonTest {
+            dependencies {
+                implementation "org.jetbrains.kotlin:kotlin-test-common"
+                implementation "org.jetbrains.kotlin:kotlin-test-annotations-common"
+            }
+        }
 
         jvmMain.dependencies {
             api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
             api "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
+        }
+        jvmTest {
+            dependencies {
+                implementation 'org.jetbrains.kotlin:kotlin-test'
+                implementation 'org.jetbrains.kotlin:kotlin-test-junit'
+            }
         }
 
 //        iOSMain.dependencies {

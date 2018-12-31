@@ -1,4 +1,4 @@
-package kotlin.workaround
+package kn.workaround
 
 /**
  * <pre>

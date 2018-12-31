@@ -29,7 +29,9 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
     private val servicesIndex: Map<String, Service>
 
     init {
-        this.protoFiles = protoFiles.sortedWith(PATH_ORDER)
+        this.protoFiles = protoFiles.sortedWith(Comparator { left, right ->
+            left.location.path.compareTo(right.location.path)
+        })
         this.typesIndex = buildTypesIndex(protoFiles)
         this.servicesIndex = buildServicesIndex(protoFiles)
     }
@@ -113,12 +115,6 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
 //    }
 
     companion object {
-        private val PATH_ORDER = object : Comparator<ProtoFile> {
-            override fun compare(left: ProtoFile, right: ProtoFile): Int {
-                return left.location.path.compareTo(right.location.path)
-            }
-        }
-
         private fun buildTypesIndex(protoFiles: Iterable<ProtoFile>): Map<String, Type> {
             val result = mutableMapOf<String, Type>()
             for (protoFile in protoFiles) {
