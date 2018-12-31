@@ -22,7 +22,7 @@ import com.squareup.wire.schema.internal.Util
 
 /** Basic parser for `.proto` schema declarations.  */
 class ProtoParser internal constructor(private val location: Location, data: CharArray) {
-    private val reader: SyntaxReader
+    private val reader: SyntaxReader = SyntaxReader(data, location)
 
     private val publicImports = mutableListOf<String>()
     private val imports = mutableListOf<String>()
@@ -42,10 +42,6 @@ class ProtoParser internal constructor(private val location: Location, data: Cha
 
     /** The current package name + nested type names, separated by dots.  */
     private var prefix = ""
-
-    init {
-        this.reader = SyntaxReader(data, location)
-    }
 
     internal fun readProtoFile(): ProtoFileElement {
         while (true) {
@@ -79,72 +75,76 @@ class ProtoParser internal constructor(private val location: Location, data: Cha
         val location = reader.location()
         val label = reader.readWord()
 
-        if (label == "package") {
-            if (!context.permitsPackage()) throw reader.unexpected(location, "'package' in $context")
-            if (packageName != null) throw reader.unexpected(location, "too many package names")
-            packageName = reader.readName()
-            prefix = packageName!! + "."
-            reader.require(';')
-            return null
-        } else if (label == "import") {
-            if (!context.permitsImport()) throw reader.unexpected(location, "'import' in $context")
-            val importString = reader.readString()
-            if ("public" == importString) {
-                publicImports.add(reader.readString())
-            } else {
-                imports.add(importString)
+        when (label) {
+            "package" -> {
+                if (!context.permitsPackage()) throw reader.unexpected(location, "'package' in $context")
+                if (packageName != null) throw reader.unexpected(location, "too many package names")
+                packageName = reader.readName()
+                prefix = packageName!! + "."
+                reader.require(';')
+                return null
             }
-            reader.require(';')
-            return null
-        } else if (label == "syntax") {
-            if (!context.permitsSyntax()) throw reader.unexpected(location, "'syntax' in $context")
-            reader.require('=')
-            if (index != 0) {
-                throw reader.unexpected(
-                        location, "'syntax' element must be the first declaration in a file")
+            "import" -> {
+                if (!context.permitsImport()) throw reader.unexpected(location, "'import' in $context")
+                val importString = reader.readString()
+                if ("public" == importString) {
+                    publicImports.add(reader.readString())
+                } else {
+                    imports.add(importString)
+                }
+                reader.require(';')
+                return null
             }
-            val syntaxString = reader.readQuotedString()
-            try {
-                syntax = ProtoFile.Syntax.get(syntaxString)
-            } catch (e: IllegalArgumentException) {
-                throw reader.unexpected(location, e.message ?: "")
-            }
+            "syntax" -> {
+                if (!context.permitsSyntax()) throw reader.unexpected(location, "'syntax' in $context")
+                reader.require('=')
+                if (index != 0) {
+                    throw reader.unexpected(
+                            location, "'syntax' element must be the first declaration in a file")
+                }
+                val syntaxString = reader.readQuotedString()
+                try {
+                    syntax = ProtoFile.Syntax[syntaxString]
+                } catch (e: IllegalArgumentException) {
+                    throw reader.unexpected(location, e.message ?: "")
+                }
 
-            reader.require(';')
-            return null
-        } else if (label == "option") {
-            val result = OptionReader(reader).readOption('=')
-            reader.require(';')
-            return result
-        } else if (label == "reserved") {
-            return readReserved(location, documentation)
-        } else if (label == "message") {
-            return readMessage(location, documentation)
-        } else if (label == "enum") {
-            return readEnumElement(location, documentation)
-        } else if (label == "service") {
-            return readService(location, documentation)
-        } else if (label == "extend") {
-            return readExtend(location, documentation)
-        } else if (label == "rpc") {
-            if (!context.permitsRpc()) throw reader.unexpected(location, "'rpc' in $context")
-            return readRpc(location, documentation)
-        } else if (label == "oneof") {
-            if (!context.permitsOneOf()) {
-                throw reader.unexpected(location, "'oneof' must be nested in message")
+                reader.require(';')
+                return null
             }
-            return readOneOf(documentation)
-        } else if (label == "extensions") {
-            if (!context.permitsExtensions()) {
-                throw reader.unexpected(location, "'extensions' must be nested")
+            "option" -> {
+                val result = OptionReader(reader).readOption('=')
+                reader.require(';')
+                return result
             }
-            return readExtensions(location, documentation)
-        } else return if (context == Context.MESSAGE || context == Context.EXTEND) {
-            readField(documentation, location, label)
-        } else if (context == Context.ENUM) {
-            readEnumConstant(documentation, location, label)
-        } else {
-            throw reader.unexpected(location, "unexpected label: $label")
+            "reserved" -> return readReserved(location, documentation)
+            "message" -> return readMessage(location, documentation)
+            "enum" -> return readEnumElement(location, documentation)
+            "service" -> return readService(location, documentation)
+            "extend" -> return readExtend(location, documentation)
+            "rpc" -> {
+                if (!context.permitsRpc()) throw reader.unexpected(location, "'rpc' in $context")
+                return readRpc(location, documentation)
+            }
+            "oneof" -> {
+                if (!context.permitsOneOf()) {
+                    throw reader.unexpected(location, "'oneof' must be nested in message")
+                }
+                return readOneOf(documentation)
+            }
+            "extensions" -> {
+                if (!context.permitsExtensions()) {
+                    throw reader.unexpected(location, "'extensions' must be nested")
+                }
+                return readExtensions(location, documentation)
+            }
+            else -> return if (context == Context.MESSAGE || context == Context.EXTEND) {
+                readField(documentation, location, label)
+            } else if (context == Context.ENUM) {
+                readEnumConstant(documentation, location, label)
+            } else {
+                throw reader.unexpected(location, "unexpected label: $label")
+            }
         }
     }
 
@@ -458,10 +458,10 @@ class ProtoParser internal constructor(private val location: Location, data: Cha
         if (reader.peekChar() != ';') {
             if ("to" != reader.readWord()) throw reader.unexpected("expected ';' or 'to'")
             val s = reader.readWord() // Range end.
-            if (s == "max") {
-                end = Util.MAX_TAG_VALUE
+            end = if (s == "max") {
+                Util.MAX_TAG_VALUE
             } else {
-                end = s.toInt()
+                s.toInt()
             }
         }
         reader.require(';')

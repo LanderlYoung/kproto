@@ -38,7 +38,7 @@ data class ProtoMember private constructor(
         operator fun get(typeAndMember: String): ProtoMember {
             val hash = typeAndMember.indexOf('#')
             if (hash == -1) throw IllegalArgumentException("expected a '#' in $typeAndMember")
-            val type = ProtoType.get(typeAndMember.substring(0, hash))
+            val type = ProtoType[typeAndMember.substring(0, hash)]
             val member = typeAndMember.substring(hash + 1)
             return ProtoMember(type, member)
         }

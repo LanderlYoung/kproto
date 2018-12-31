@@ -27,9 +27,9 @@ class Rpc private constructor(
         val responseStreaming: Boolean,
         val options: Options) {
 
-    var requestType: ProtoType? = null
+    lateinit var requestType: ProtoType
         private set
-    var responseType: ProtoType? = null
+    lateinit var responseType: ProtoType
         private set
 
     internal fun link(linker: Linker) {
@@ -48,8 +48,8 @@ class Rpc private constructor(
     internal fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
-        linker.validateImport(location, requestType!!)
-        linker.validateImport(location, responseType!!)
+        linker.validateImport(location, requestType)
+        linker.validateImport(location, responseType)
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet): Rpc? {
@@ -79,13 +79,13 @@ class Rpc private constructor(
             for (rpc in rpcs) {
                 elements.add(RpcElement(
                         location = rpc.location,
-                        documentation=rpc.documentation,
-                        name=rpc.name,
-                        requestType=rpc.requestTypeElement,
-                        responseType=rpc.responseTypeElement,
-                        requestStreaming=rpc.requestStreaming,
-                        responseStreaming=rpc.responseStreaming,
-                        options=rpc.options.toElements()))
+                        documentation = rpc.documentation,
+                        name = rpc.name,
+                        requestType = rpc.requestTypeElement,
+                        responseType = rpc.responseTypeElement,
+                        requestStreaming = rpc.requestStreaming,
+                        responseStreaming = rpc.responseStreaming,
+                        options = rpc.options.toElements()))
             }
             return elements
         }

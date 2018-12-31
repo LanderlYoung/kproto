@@ -141,7 +141,7 @@ class ProtoType {
         }
 
         operator fun get(name: String?): ProtoType {
-            val scalar = SCALAR_TYPES.get(name)
+            val scalar = SCALAR_TYPES[name]
             if (scalar != null) return scalar
 
             if (name == null || name.isEmpty() || name.contains("#")) {

@@ -18,7 +18,7 @@ package com.squareup.wire.schema.internal.parser
 import com.squareup.wire.schema.Location
 
 /** A message type or enum type declaration.  */
-interface  TypeElement {
+interface TypeElement {
     val location: Location
     val name: String
     val documentation: String

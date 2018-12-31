@@ -30,16 +30,15 @@ import com.squareup.wire.schema.internal.Multimap
  *  1. Retaining which members and types have been marked.
  *
  */
-internal class MarkSet(val identifierSet: IdentifierSet) {
+internal class MarkSet(private val identifierSet: IdentifierSet) {
     val types: MutableSet<ProtoType> = LinkedHashSet()
-    val members = Multimap<ProtoType, ProtoMember>()
+    private val members = Multimap<ProtoType, ProtoMember>()
 
     /**
      * Marks `protoMember`, throwing if it is explicitly excluded, or if its enclosing type is
      * also specifically included. This implicitly excludes other members of the same type.
      */
-    fun root(protoMember: ProtoMember?) {
-        if (protoMember == null) throw NullPointerException("protoMember == null")
+    fun root(protoMember: ProtoMember) {
         check(!identifierSet.excludes(protoMember))
         check(!types.contains(protoMember.type))
         members.put(protoMember.type, protoMember)
@@ -49,8 +48,7 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
      * Marks `type`, throwing if it is explicitly excluded, or if any of its members are also
      * specifically included.
      */
-    fun root(type: ProtoType?) {
-        if (type == null) throw NullPointerException("type == null")
+    fun root(type: ProtoType) {
         check(!identifierSet.excludes(type))
         check(!members.containsKey(type))
         types.add(type)
@@ -60,8 +58,7 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
      * Marks a type as transitively reachable by the includes set. Returns true if the mark is new,
      * the type will be retained, and its own dependencies should be traversed.
      */
-    fun mark(type: ProtoType?): Boolean {
-        if (type == null) throw NullPointerException("type == null")
+    fun mark(type: ProtoType): Boolean {
         return if (identifierSet.excludes(type)) false else types.add(type)
     }
 
@@ -69,8 +66,7 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
      * Marks a member as transitively reachable by the includes set. Returns true if the mark is new,
      * the member will be retained, and its own dependencies should be traversed.
      */
-    fun mark(protoMember: ProtoMember?): Boolean {
-        if (protoMember == null) throw NullPointerException("type == null")
+    fun mark(protoMember: ProtoMember): Boolean {
         if (identifierSet.excludes(protoMember)) return false
         return if (members.containsKey(protoMember.type))
             members.put(protoMember.type, protoMember)
@@ -79,20 +75,17 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
     }
 
     /** Returns true if all members of `type` are marked and should be retained.  */
-    fun containsAllMembers(type: ProtoType?): Boolean {
-        if (type == null) throw NullPointerException("type == null")
+    fun containsAllMembers(type: ProtoType): Boolean {
         return types.contains(type) && !members.containsKey(type)
     }
 
     /** Returns true if `type` is marked and should be retained.  */
-    operator fun contains(type: ProtoType?): Boolean {
-        if (type == null) throw NullPointerException("type == null")
+    operator fun contains(type: ProtoType): Boolean {
         return types.contains(type)
     }
 
     /** Returns true if `member` is marked and should be retained.  */
-    operator fun contains(protoMember: ProtoMember?): Boolean {
-        if (protoMember == null) throw NullPointerException("protoMember == null")
+    operator fun contains(protoMember: ProtoMember): Boolean {
         if (identifierSet.excludes(protoMember)) return false
         return members[protoMember.type].contains(protoMember)
     }

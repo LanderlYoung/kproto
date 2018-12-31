@@ -22,8 +22,7 @@ data class OptionElement(
         val name: String,
         val kind: Kind,
         val value: Any,
-        val isParenthesized: Boolean = false
-) {
+        val isParenthesized: Boolean = false) {
 
     enum class Kind {
         STRING,

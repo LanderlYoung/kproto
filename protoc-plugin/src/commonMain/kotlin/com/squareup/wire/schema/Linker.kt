@@ -120,7 +120,7 @@ internal class Linker {
                            paths: Collection<String>, publicImports: Multimap<String, String>) {
         for (path in paths) {
             if (sink.add(path)) {
-                addImports(sink, publicImports[path]!!, publicImports)
+                addImports(sink, publicImports[path], publicImports)
             }
         }
     }
@@ -143,7 +143,7 @@ internal class Linker {
     }
 
     private fun resolveType(name: String, messageOnly: Boolean): ProtoType {
-        val type = ProtoType.get(name)
+        val type = ProtoType[name]
         if (type.isScalar) {
             if (messageOnly) {
                 addError("expected a message but was %s", name)
@@ -233,7 +233,7 @@ internal class Linker {
             field = field.substring(1, field.length - 1)
         }
 
-        val type = protoTypeNames[self.type!!.toString()]
+        val type = protoTypeNames[self.type.toString()]
         if (type is MessageType) {
             val messageField = type.field(field)
             if (messageField != null) return messageField

@@ -22,8 +22,7 @@ data class OneOfElement(
         val name: String,
         val documentation: String = "",
         val fields: List<FieldElement> = listOf(),
-        val groups: List<GroupElement> = listOf()
-) {
+        val groups: List<GroupElement> = listOf()) {
     fun toSchema(): String {
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)

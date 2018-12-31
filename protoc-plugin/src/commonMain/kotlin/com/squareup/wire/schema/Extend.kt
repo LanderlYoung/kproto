@@ -17,24 +17,24 @@ package com.squareup.wire.schema
 
 import com.squareup.wire.schema.internal.parser.ExtendElement
 
-internal class Extend private constructor(
+class Extend private constructor(
         val location: Location,
         val documentation: String,
-        private val name: String,
+        val name: String,
         val fields: List<Field>) {
     var protoType: ProtoType? = null
         private set
 
 
-    fun link(linker: Linker) {
+    internal fun link(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         protoType = linker.resolveMessageType(name)
-        val type = linker.get(protoType!!)
+        val type = linker[protoType!!]
         (type as MessageType).addExtensionFields(fields)
     }
 
-    fun validate(linker: Linker) {
+    internal fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         linker.validateImport(location, protoType!!)

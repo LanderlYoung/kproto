@@ -24,8 +24,7 @@ data class EnumConstantElement(
         val name: String,
         val tag: Int,
         val documentation: String = "",
-        val options: List<OptionElement> = listOf()
-) {
+        val options: List<OptionElement> = listOf()) {
     fun toSchema(): String {
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)

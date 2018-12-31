@@ -98,22 +98,6 @@ class Schema internal constructor(protoFiles: Iterable<ProtoFile>) {
         return field
     }
 
-    /**
-     * Returns a wire adapter for the message or enum type named `typeName`. The returned type
-     * adapter doesn't have model classes to encode and decode from, so instead it uses scalar types
-     * ([String], [ByteString][okio.ByteString], [Integer], etc.),
-     * [maps][Map], and [lists][java.util.List]. It can both encode and decode
-     * these objects. Map keys are field names.
-     *
-     * @param includeUnknown true to include values for unknown tags in the returned model. Map keys
-     * for such values is the unknown value's tag name as a string. Unknown values are decoded to
-     * [Long], [Long], [Integer], or [     ByteString][okio.ByteString] for [VARINT][com.squareup.wire.FieldEncoding.VARINT], [     ][com.squareup.wire.FieldEncoding.FIXED64], [     ][com.squareup.wire.FieldEncoding.FIXED32], or [     ][com.squareup.wire.FieldEncoding.LENGTH_DELIMITED] respectively.
-     */
-//    fun protoAdapter(typeName: String, includeUnknown: Boolean): ProtoAdapter<Any> {
-//        val type = getType(typeName) ?: throw IllegalArgumentException("unexpected type $typeName")
-//        return SchemaProtoAdapterFactory(this, includeUnknown)[type.type]
-//    }
-
     companion object {
         private fun buildTypesIndex(protoFiles: Iterable<ProtoFile>): Map<String, Type> {
             val result = mutableMapOf<String, Type>()

@@ -24,8 +24,7 @@ data class ServiceElement(
         val name: String,
         val documentation: String = "",
         val rpcs: List<RpcElement> = listOf(),
-        val options: List<OptionElement> = listOf()
-) {
+        val options: List<OptionElement> = listOf()) {
 
     fun toSchema(): String {
         val builder = StringBuilder()

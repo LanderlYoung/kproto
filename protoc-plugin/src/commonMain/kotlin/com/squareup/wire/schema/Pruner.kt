@@ -65,11 +65,11 @@ internal class Pruner(val schema: Schema, private val identifierSet: IdentifierS
         } else {
             if (type is MessageType) {
                 for (field in type.fieldsAndOneOfFields()) {
-                    markRoots(ProtoMember.get(protoType, field.name))
+                    markRoots(ProtoMember[protoType, field.name])
                 }
             } else if (type is EnumType) {
                 for (enumConstant in type.constants()) {
-                    markRoots(ProtoMember.get(protoType, enumConstant.name))
+                    markRoots(ProtoMember[protoType, enumConstant.name])
                 }
             } else {
                 throw AssertionError()
@@ -88,7 +88,7 @@ internal class Pruner(val schema: Schema, private val identifierSet: IdentifierS
             queue.add(protoType)
         } else {
             for (rpc in service.rpcs) {
-                markRoots(ProtoMember.get(protoType, rpc.name))
+                markRoots(ProtoMember[protoType, rpc.name])
             }
         }
     }
@@ -200,7 +200,7 @@ internal class Pruner(val schema: Schema, private val identifierSet: IdentifierS
     }
 
     private fun markMessage(message: MessageType) {
-        markFields(message.type, message.fields())
+        markFields(message.type, message.fields)
         for (oneOf in message.oneOfs()) {
             markFields(message.type, oneOf.fields)
         }
@@ -210,7 +210,7 @@ internal class Pruner(val schema: Schema, private val identifierSet: IdentifierS
         markOptions(wireEnum.options)
         if (marks.containsAllMembers(wireEnum.type)) {
             for (constant in wireEnum.constants()) {
-                if (marks.contains(ProtoMember.get(wireEnum.type, constant.name))) {
+                if (marks.contains(ProtoMember[wireEnum.type, constant.name])) {
                     markOptions(constant.options)
                 }
             }
@@ -246,7 +246,7 @@ internal class Pruner(val schema: Schema, private val identifierSet: IdentifierS
     }
 
     private fun markRpc(declaringType: ProtoType, rpc: Rpc) {
-        if (marks.contains(ProtoMember.get(declaringType, rpc.name))) {
+        if (marks.contains(ProtoMember[declaringType, rpc.name])) {
             markOptions(rpc.options)
             mark(rpc.requestType!!)
             mark(rpc.responseType!!)

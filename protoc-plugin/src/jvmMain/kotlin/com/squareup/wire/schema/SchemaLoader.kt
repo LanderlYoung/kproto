@@ -144,7 +144,7 @@ class SchemaLoader {
                 throw FileNotFoundException("Failed to locate $proto in $sources")
             }
 
-            val protoFile = ProtoFile.get(element)
+            val protoFile = ProtoFile[element]
             loaded[proto] = protoFile
 
             // Queue dependencies to be loaded.

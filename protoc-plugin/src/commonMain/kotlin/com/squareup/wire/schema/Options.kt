@@ -25,7 +25,7 @@ import com.squareup.wire.schema.internal.parser.OptionElement
  * messages.
  */
 class Options(private val optionType: ProtoType, elements: List<OptionElement>) {
-    private val optionElements: List<OptionElement> = elements
+    val optionElements: List<OptionElement> = elements
     /**
      * A map with the values for these options. Map values may be either a single entry, like
      * `{deprecated: "true"}`, or more sophisticated, with nested maps and lists.
@@ -75,7 +75,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
 
     internal fun canonicalizeOption(
             linker: Linker, extensionType: ProtoType, option: OptionElement): Map<ProtoMember, Any>? {
-        val type = linker.get(extensionType) as? MessageType
+        val type = linker[extensionType] as? MessageType
                 ?: return null // No known extensions for the given extension type.
 
         var path: Array<String>?
@@ -106,7 +106,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
         for (i in 1 until path.size) {
             val nested = LinkedHashMap<ProtoMember, Any>()
             last[ProtoMember[lastProtoType, field!!]] = nested
-            lastProtoType = field.type!!
+            lastProtoType = field.type
             last = nested
             field = linker.dereference(field, path[i])
             if (field == null) {
@@ -125,8 +125,8 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
             if (field == null) {
                 linker.addError("unable to resolve option %s on %s", value.name, context.type)
             } else {
-                val protoMember = ProtoMember.get(context.type, field)
-                result.put(protoMember, canonicalizeValue(linker, field, value.value))
+                val protoMember = ProtoMember[context.type, field]
+                result[protoMember] = canonicalizeValue(linker, field, value.value)
             }
             return coerceValueForField(context, result)
         }
@@ -139,7 +139,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
                 if (field == null) {
                     linker.addError("unable to resolve option %s on %s", name, context.type)
                 } else {
-                    val protoMember = ProtoMember.get(context.type, field)
+                    val protoMember = ProtoMember[context.type, field]
                     result[protoMember] = canonicalizeValue(linker, field, value1!!)
                 }
             }
@@ -170,16 +170,16 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     /** Combine values for the same key, resolving conflicts based on their type.  */
-    private fun union(linker: Linker, a: Any, b: Any): Any {
-        if (a is List<*>) {
-            return union(a, b as List<*>)
-        } else if (a is Map<*, *>) {
-            return union(linker, a as Map<ProtoMember, Any>, b as Map<ProtoMember, Any>)
-        } else {
-            linker.addError("conflicting options: %s, %s", a, b)
-            return a // Just return any placeholder.
-        }
-    }
+    @Suppress("UNCHECKED_CAST")
+    private fun union(linker: Linker, a: Any, b: Any): Any =
+            when (a) {
+                is List<*> -> union(a, b as List<*>)
+                is Map<*, *> -> union(linker, a as Map<ProtoMember, Any>, b as Map<ProtoMember, Any>)
+                else -> {
+                    linker.addError("conflicting options: %s, %s", a, b)
+                    a // Just return any placeholder.
+                }
+            }
 
     private fun union(
             linker: Linker, a: Map<ProtoMember, Any>, b: Map<ProtoMember, Any>): Map<ProtoMember, Any> {
@@ -232,7 +232,7 @@ class Options(private val optionType: ProtoType, elements: List<OptionElement>) 
     }
 
     /** Returns an object of the same type as `o`, or null if it is not retained.  */
-    private fun retainAll(schema: Schema, markSet: MarkSet, type: ProtoType?, o: Any): Any? {
+    private fun retainAll(schema: Schema, markSet: MarkSet, type: ProtoType, o: Any): Any? {
         if (!markSet.contains(type)) {
             return null // Prune this type.
 

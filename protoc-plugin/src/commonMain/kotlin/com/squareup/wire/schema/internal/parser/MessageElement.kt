@@ -29,8 +29,7 @@ data class MessageElement(
         val fields: List<FieldElement> = listOf(),
         val oneOfs: List<OneOfElement> = listOf(),
         val extensions: List<ExtensionsElement> = listOf(),
-        val groups: List<GroupElement> = listOf()
-) : TypeElement {
+        val groups: List<GroupElement> = listOf()) : TypeElement {
 
     override fun toSchema(): String {
         val builder = StringBuilder()

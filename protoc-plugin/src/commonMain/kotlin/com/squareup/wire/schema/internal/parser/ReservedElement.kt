@@ -24,8 +24,7 @@ data class ReservedElement(
         val location: Location,
         val documentation: String,
         /** A [String] name or [Integer] or [IntRange] tag.  */
-        val values: List<Any>
-) {
+        val values: List<Any>) {
 
     fun toSchema(): String {
         val builder = StringBuilder()

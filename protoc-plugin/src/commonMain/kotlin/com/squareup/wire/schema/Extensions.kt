@@ -32,25 +32,20 @@ internal class Extensions private constructor(
 
     companion object {
 
-        fun fromElements(elements: List<ExtensionsElement>): List<Extensions> {
-            val extensions = mutableListOf<Extensions>()
-            for (element in elements) {
-                extensions.add(Extensions(element.location, element.documentation,
-                        element.start, element.end))
-            }
-            return extensions
-        }
+        fun fromElements(elements: List<ExtensionsElement>): List<Extensions> =
+                elements.map { element ->
+                    Extensions(element.location, element.documentation,
+                            element.start, element.end)
+                }
 
-        fun toElements(extensions: List<Extensions>): List<ExtensionsElement> {
-            val elements = mutableListOf<ExtensionsElement>()
-            for (extension in extensions) {
-                elements.add(ExtensionsElement(
-                        location = extension.location,
-                        start = extension.start,
-                        end = extension.end,
-                        documentation = extension.documentation))
-            }
-            return elements
-        }
+        fun toElements(extensions: List<Extensions>): List<ExtensionsElement> =
+                extensions.map { extension ->
+                    ExtensionsElement(
+                            location = extension.location,
+                            start = extension.start,
+                            end = extension.end,
+                            documentation = extension.documentation)
+
+                }
     }
 }

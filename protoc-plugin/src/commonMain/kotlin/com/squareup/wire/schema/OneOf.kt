@@ -23,15 +23,11 @@ class OneOf private constructor(
         val fields: List<Field>) {
 
     internal fun link(linker: Linker) {
-        for (field in fields) {
-            field.link(linker)
-        }
+        fields.forEach { it.link(linker) }
     }
 
     internal fun linkOptions(linker: Linker) {
-        for (field in fields) {
-            field.linkOptions(linker)
-        }
+        fields.forEach { it.linkOptions(linker) }
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet, enclosingType: ProtoType): OneOf? {

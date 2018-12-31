@@ -28,6 +28,7 @@ class SchemaTest {
         loader.addProto("one_of.proto")
 
         val schema = loader.load()
+        val allTypes = schema.getType("squareup.protos.alltypes.AllTypes")
 
         assertTrue(schema.protoFiles().isNotEmpty())
     }

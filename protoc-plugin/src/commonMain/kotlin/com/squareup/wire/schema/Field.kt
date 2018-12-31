@@ -23,8 +23,7 @@ class Field private constructor(
         val location: Location,
         val label: Label?,
         val name: String,
-
-        private val documentation: String,
+        val documentation: String,
         val tag: Int,
         val default: String?,
         private val elementType: String,
@@ -68,7 +67,7 @@ class Field private constructor(
     private fun isPackable(linker: Linker, type: ProtoType): Boolean {
         return (type != ProtoType.STRING
                 && type != ProtoType.BYTES
-                && linker.get(type) !is MessageType)
+                && linker[type] !is MessageType)
     }
 
     internal fun link(linker: Linker) {
@@ -90,18 +89,18 @@ class Field private constructor(
     internal fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
-        if (isPacked && !isPackable(linker, type!!)) {
-            linker.addError("packed=true not permitted on %s", type!!)
+        if (isPacked && !isPackable(linker, type)) {
+            linker.addError("packed=true not permitted on %s", type)
         }
         if (isExtension && isRequired) {
-            linker.addError("extension fields cannot be required", type!!)
+            linker.addError("extension fields cannot be required", type)
         }
-        linker.validateImport(location, type!!)
+        linker.validateImport(location, type)
     }
 
     internal fun retainAll(schema: Schema, markSet: MarkSet): Field? {
         // For map types only the value can participate in pruning as the key will always be scalar.
-        if (type!!.isMap && !markSet.contains(type!!.valueType())) return null
+        if (type.isMap && !markSet.contains(type.valueType!!)) return null
 
         if (!markSet.contains(type)) return null
 
@@ -125,8 +124,8 @@ class Field private constructor(
     }
 
     companion object {
-        internal val DEPRECATED = ProtoMember.get(FIELD_OPTIONS, "deprecated")
-        internal val PACKED = ProtoMember.get(FIELD_OPTIONS, "packed")
+        internal val DEPRECATED = ProtoMember[FIELD_OPTIONS, "deprecated"]
+        internal val PACKED = ProtoMember[FIELD_OPTIONS, "packed"]
 
         internal fun fromElements(packageName: String?,
                                   fieldElements: List<FieldElement>, extension: Boolean): List<Field> {
@@ -160,7 +159,7 @@ class Field private constructor(
             val result = mutableListOf<Field>()
             for (field in fields) {
                 val retainedField = field.retainAll(schema, markSet)
-                if (retainedField != null && markSet.contains(ProtoMember.get(enclosingType, field.name))) {
+                if (retainedField != null && markSet.contains(ProtoMember[enclosingType, field.name])) {
                     result.add(retainedField)
                 }
             }

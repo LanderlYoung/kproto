@@ -17,7 +17,10 @@ package com.squareup.wire.schema
 
 import com.squareup.wire.schema.internal.parser.ReservedElement
 
-internal class Reserved private constructor(private val location: Location, private val documentation: String, private val values: List<Any>) {
+internal class Reserved private constructor(
+        private val location: Location,
+        private val documentation: String,
+        private val values: List<Any>) {
 
     fun location(): Location {
         return location
@@ -65,7 +68,7 @@ internal class Reserved private constructor(private val location: Location, priv
         fun toElements(reserveds: List<Reserved>): List<ReservedElement> {
             val builder = mutableListOf<ReservedElement>()
             for (reserved in reserveds) {
-                builder.add( ReservedElement(reserved.location(), reserved.documentation(), reserved.values()))
+                builder.add(ReservedElement(reserved.location(), reserved.documentation(), reserved.values()))
             }
             return builder
         }

@@ -53,14 +53,13 @@ class SyntaxReader(private val data: CharArray, private val location: Location) 
         return data[pos]
     }
 
-    fun peekChar(c: Char): Boolean {
-        if (peekChar() == c) {
-            pos++
-            return true
-        } else {
-            return false
-        }
-    }
+    fun peekChar(c: Char): Boolean =
+            if (peekChar() == c) {
+                pos++
+                true
+            } else {
+                false
+            }
 
     /** Push back the most recently read character.  */
     fun pushBack(c: Char) {
@@ -135,11 +134,11 @@ class SyntaxReader(private val data: CharArray, private val location: Location) 
     }
 
     private fun hexDigit(c: Char): Int {
-        return if (c >= '0' && c <= '9')
+        return if (c in '0'..'9')
             c - '0'
-        else if (c >= 'a' && c <= 'f')
+        else if (c in 'a'..'f')
             c - 'a' + 10
-        else if (c >= 'A' && c <= 'F')
+        else if (c in 'A'..'F')
             c - 'A' + 10
         else
             -1
@@ -190,9 +189,9 @@ class SyntaxReader(private val data: CharArray, private val location: Location) 
         val start = pos
         while (pos < data.size) {
             val c = data[pos]
-            if (c >= 'a' && c <= 'z'
-                    || c >= 'A' && c <= 'Z'
-                    || c >= '0' && c <= '9'
+            if (c in 'a'..'z'
+                    || c in 'A'..'Z'
+                    || c in '0'..'9'
                     || c == '_'
                     || c == '-'
                     || c == '.') {

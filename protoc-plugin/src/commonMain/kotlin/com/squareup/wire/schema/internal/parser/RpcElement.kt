@@ -27,8 +27,7 @@ data class RpcElement(
         val responseType: String,
         val requestStreaming: Boolean = false,
         val responseStreaming: Boolean = false,
-        val options: List<OptionElement> = listOf()
-) {
+        val options: List<OptionElement> = listOf()) {
 
     fun toSchema(): String {
         val builder = StringBuilder()

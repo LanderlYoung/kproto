@@ -49,18 +49,13 @@ package com.squareup.wire.schema
  * Despite the builder, instances of this class are not safe for concurrent use.
  */
 class IdentifierSet private constructor(builder: Builder) {
-    private val includes: Set<String>
-    private val excludes: Set<String>
+    private val includes: Set<String> = builder.includes
+    private val excludes: Set<String> = builder.excludes
     private val usedIncludes = LinkedHashSet<String>()
     private val usedExcludes = LinkedHashSet<String>()
 
     val isEmpty: Boolean
         get() = includes.isEmpty() && excludes.isEmpty()
-
-    init {
-        this.includes = builder.includes
-        this.excludes = builder.excludes
-    }
 
     /** Returns true if `type` is a root.  */
     fun includes(type: ProtoType): Boolean {
@@ -144,26 +139,22 @@ class IdentifierSet private constructor(builder: Builder) {
         internal val includes: MutableSet<String> = mutableSetOf()
         internal val excludes: MutableSet<String> = mutableSetOf()
 
-        fun include(identifier: String?): Builder {
-            if (identifier == null) throw NullPointerException("identifier == null")
+        fun include(identifier: String): Builder {
             includes.add(identifier)
             return this
         }
 
-        fun include(identifiers: Iterable<String>?): Builder {
-            if (identifiers == null) throw NullPointerException("identifiers == null")
+        fun include(identifiers: Iterable<String>): Builder {
             includes.addAll(identifiers)
             return this
         }
 
-        fun exclude(identifier: String?): Builder {
-            if (identifier == null) throw NullPointerException("identifier == null")
+        fun exclude(identifier: String): Builder {
             excludes.add(identifier)
             return this
         }
 
-        fun exclude(identifiers: Iterable<String>?): Builder {
-            if (identifiers == null) throw NullPointerException("identifiers == null")
+        fun exclude(identifiers: Iterable<String>): Builder {
             excludes.addAll(identifiers)
             return this
         }

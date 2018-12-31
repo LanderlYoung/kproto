@@ -24,7 +24,7 @@ import com.squareup.wire.schema.internal.parser.OptionElement.Kind.NUMBER
 import com.squareup.wire.schema.internal.parser.OptionElement.Kind.STRING
 import kn.workaround.isDigit
 
-class OptionReader(internal val reader: SyntaxReader) {
+class OptionReader(private val reader: SyntaxReader) {
 
     /**
      * Reads options enclosed in '[' and ']' if they are present and returns them. Returns an empty

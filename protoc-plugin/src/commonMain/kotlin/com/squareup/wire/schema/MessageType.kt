@@ -21,29 +21,21 @@ class MessageType private constructor(
         override val type: ProtoType,
         override val location: Location,
         override val documentation: String,
-        private val name: String,
-        private val declaredFields: List<Field>,
-        private val extensionFields: MutableList<Field>,
-        private val oneOfs: List<OneOf>,
+        val name: String,
+        val declaredFields: List<Field>,
+        val extensionFields: MutableList<Field>,
+        val oneOfs: List<OneOf>,
         override val nestedTypes: List<Type>,
         private val extensionsList: List<Extensions>,
         private val reserveds: List<Reserved>,
-        override val options: Options
-) : Type() {
+        override val options: Options) : Type() {
 
 
     val requiredFields: List<Field>
-        get() {
-            val required = mutableListOf<Field>()
-            for (field in fieldsAndOneOfFields()) {
-                if (field.isRequired) {
-                    required.add(field)
-                }
-            }
-            return required
-        }
+        get() = fieldsAndOneOfFields().filter { it.isRequired }
 
-    fun fields(): List<Field> = declaredFields + extensionFields
+    val fields: List<Field>
+        get() = declaredFields + extensionFields
 
     fun fieldsAndOneOfFields(): List<Field> {
         val result = mutableListOf<Field>()
@@ -117,7 +109,7 @@ class MessageType private constructor(
         extensionFields.addAll(fields)
     }
 
-    internal override fun link(linker: Linker) {
+    override fun link(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         for (field in declaredFields) {
@@ -134,7 +126,7 @@ class MessageType private constructor(
         }
     }
 
-    internal override fun linkOptions(linker: Linker) {
+    override fun linkOptions(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         for (type in nestedTypes) {
@@ -152,7 +144,7 @@ class MessageType private constructor(
         options.link(linker)
     }
 
-    internal override fun validate(linker: Linker) {
+    override fun validate(linker: Linker) {
         var linker = linker
         linker = linker.withContext(this)
         linker.validateFields(fieldsAndOneOfFields(), reserveds)
@@ -168,7 +160,7 @@ class MessageType private constructor(
         }
     }
 
-    internal override fun retainAll(schema: Schema, markSet: MarkSet): Type? {
+    override fun retainAll(schema: Schema, markSet: MarkSet): Type? {
         val retainedNestedTypes = mutableListOf<Type>()
         for (nestedType in nestedTypes) {
             val retainedNestedType = nestedType.retainAll(schema, markSet)
@@ -238,7 +230,7 @@ class MessageType private constructor(
 
             val nestedTypes = mutableListOf<Type>()
             for (nestedType in messageElement.nestedTypes) {
-                nestedTypes.add(Type.get(packageName, protoType.nestedType(nestedType.name), nestedType))
+                nestedTypes.add(Type[packageName, protoType.nestedType(nestedType.name), nestedType])
             }
 
             val extensionsList = Extensions.fromElements(messageElement.extensions)

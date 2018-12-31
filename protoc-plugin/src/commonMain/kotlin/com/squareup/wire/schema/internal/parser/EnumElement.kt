@@ -24,8 +24,7 @@ data class EnumElement(
         override val name: String,
         override val documentation: String,
         override val options: List<OptionElement> = listOf(),
-        val constants: List<EnumConstantElement> = listOf()
-) : TypeElement {
+        val constants: List<EnumConstantElement> = listOf()) : TypeElement {
 
     override val nestedTypes: List<TypeElement> = listOf()
 

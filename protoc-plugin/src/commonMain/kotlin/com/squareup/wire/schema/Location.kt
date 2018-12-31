@@ -30,8 +30,7 @@ data class Location(
         val line: Int,
 
         /** Returns the column on the line of this location, or -1 for no specific column.  */
-        val column: Int
-) {
+        val column: Int) {
 
     fun at(line: Int, column: Int): Location {
         return copy(line = line, column = column)

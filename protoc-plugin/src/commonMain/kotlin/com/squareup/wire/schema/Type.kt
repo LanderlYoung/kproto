@@ -32,13 +32,12 @@ abstract class Type {
 
     companion object {
 
-        operator fun get(packageName: String?, protoType: ProtoType, type: TypeElement): Type {
-            return when (type) {
-                is EnumElement -> EnumType.fromElement(protoType, type)
-                is MessageElement -> MessageType.fromElement(packageName, protoType, type)
-                else -> throw IllegalArgumentException("unexpected type: $type")
-            }
-        }
+        operator fun get(packageName: String?, protoType: ProtoType, type: TypeElement): Type =
+                when (type) {
+                    is EnumElement -> EnumType.fromElement(protoType, type)
+                    is MessageElement -> MessageType.fromElement(packageName, protoType, type)
+                    else -> throw IllegalArgumentException("unexpected type: $type")
+                }
 
         internal fun fromElements(packageName: String?, elements: List<TypeElement>): List<Type> {
             val types = mutableListOf<Type>()
@@ -49,21 +48,15 @@ abstract class Type {
             return types
         }
 
-        internal fun toElement(type: Type): TypeElement {
-            return when (type) {
-                is EnumType -> type.toElement()
-                is MessageType -> type.toElement()
-                is EnclosingType -> type.toElement()
-                else -> throw IllegalArgumentException("unexpected type: $type")
-            }
-        }
+        fun Type.toElement(): TypeElement =
+                when (this) {
+                    is EnumType -> toElement()
+                    is MessageType -> toElement()
+                    is EnclosingType -> toElement()
+                    else -> throw IllegalArgumentException("unexpected type: $type")
+                }
 
-        internal fun toElements(types: List<Type>): List<TypeElement> {
-            val elements = mutableListOf<TypeElement>()
-            for (type in types) {
-                elements.add(Type.toElement(type))
-            }
-            return elements
-        }
+        fun toElements(types: List<Type>): List<TypeElement> =
+                types.map { it.toElement() }
     }
 }

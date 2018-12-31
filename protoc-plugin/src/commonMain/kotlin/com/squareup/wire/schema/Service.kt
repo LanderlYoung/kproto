@@ -66,7 +66,7 @@ class Service private constructor(
         val retainedRpcs = mutableListOf<Rpc>()
         for (rpc in rpcs) {
             val retainedRpc = rpc.retainAll(schema, markSet)
-            if (retainedRpc != null && markSet.contains(ProtoMember.get(type, rpc.name))) {
+            if (retainedRpc != null && markSet.contains(ProtoMember[type, rpc.name])) {
                 retainedRpcs.add(retainedRpc)
             }
         }
@@ -77,7 +77,7 @@ class Service private constructor(
 
     companion object {
 
-        internal fun fromElement(protoType: ProtoType, element: ServiceElement): Service {
+        fun fromElement(protoType: ProtoType, element: ServiceElement): Service {
             val rpcs = Rpc.fromElements(element.rpcs)
             val options = Options(Options.SERVICE_OPTIONS, element.options)
 
@@ -85,27 +85,18 @@ class Service private constructor(
                     options)
         }
 
-        internal fun fromElements(packageName: String?,
-                                  elements: List<ServiceElement>): List<Service> {
-            val services = mutableListOf<Service>()
-            for (service in elements) {
-                val protoType = ProtoType[packageName, service.name]
-                services.add(Service.fromElement(protoType, service))
-            }
-            return services
-        }
+        fun fromElements(packageName: String?,
+                         elements: List<ServiceElement>): List<Service> =
+                elements.map { Service.fromElement(ProtoType[packageName, it.name], it) }
 
-        internal fun toElements(services: List<Service>): List<ServiceElement> {
-            val elements = mutableListOf<ServiceElement>()
-            for (service in services) {
-                elements.add(ServiceElement(
-                        location = service.location,
-                        documentation=service.documentation,
-                        name=service.name,
-                        rpcs=Rpc.toElements(service.rpcs),
-                        options=service.options.toElements()))
-            }
-            return elements
-        }
+        fun toElements(services: List<Service>): List<ServiceElement> =
+                services.map {
+                    ServiceElement(
+                            location = it.location,
+                            documentation = it.documentation,
+                            name = it.name,
+                            rpcs = Rpc.toElements(it.rpcs),
+                            options = it.options.toElements())
+                }
     }
 }

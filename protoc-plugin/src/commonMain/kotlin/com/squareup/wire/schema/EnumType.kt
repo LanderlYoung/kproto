@@ -64,7 +64,7 @@ class EnumType private constructor(
         for (constant in constants) {
             constant.linkOptions(linker)
         }
-        _allowAlias = options.get(ALLOW_ALIAS)
+        _allowAlias = options[ALLOW_ALIAS]
     }
 
     internal override fun validate(linker: Linker) {
@@ -101,7 +101,7 @@ class EnumType private constructor(
 
         val retainedConstants = mutableListOf<EnumConstant>()
         for (constant in constants) {
-            if (markSet.contains(ProtoMember.get(type, constant.name))) {
+            if (markSet.contains(ProtoMember[type, constant.name])) {
                 retainedConstants.add(constant.retainAll(schema, markSet))
             }
         }
@@ -121,7 +121,7 @@ class EnumType private constructor(
     }
 
     companion object {
-        internal val ALLOW_ALIAS = ProtoMember.get(ENUM_OPTIONS, "allow_alias")
+        internal val ALLOW_ALIAS = ProtoMember[ENUM_OPTIONS, "allow_alias"]
 
         internal fun fromElement(protoType: ProtoType, enumElement: EnumElement): EnumType {
             val constants = EnumConstant.fromElements(enumElement.constants)

@@ -26,8 +26,7 @@ data class GroupElement(
         val name: String,
         val tag: Int,
         val documentation: String = "",
-        val fields: List<FieldElement> = listOf()
-) {
+        val fields: List<FieldElement> = listOf()) {
     fun toSchema(): String {
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)

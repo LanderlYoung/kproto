@@ -21,11 +21,10 @@ import com.squareup.wire.schema.internal.Util
 import com.squareup.wire.schema.internal.Util.appendDocumentation
 
 data class ExtensionsElement(
-     val location: Location,
-     val documentation: String = "",
-     val start: Int,
-     val end: Int
-) {
+        val location: Location,
+        val documentation: String = "",
+        val start: Int,
+        val end: Int) {
     fun toSchema(): String {
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)

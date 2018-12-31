@@ -8,7 +8,7 @@ package com.squareup.wire.schema.internal
  * Life with Passion, Code with Creativity.
  * </pre>
  */
-class Multimap<Key, Value>
+internal class Multimap<Key, Value>
 private constructor(private val _map: LinkedHashMap<Key, HashSet<Value>>)
     : Map<Key, HashSet<Value>> by _map {
 
