@@ -16,6 +16,7 @@
 package com.squareup.wire.schema
 
 import com.squareup.wire.schema.Options.Companion.ENUM_OPTIONS
+import com.squareup.wire.schema.internal.Multimap
 import com.squareup.wire.schema.internal.parser.EnumElement
 
 class EnumType private constructor(
@@ -76,11 +77,9 @@ class EnumType private constructor(
     }
 
     private fun validateTagUniqueness(linker: Linker) {
-        val tagToConstant = LinkedHashMap<Int, MutableList<EnumConstant>>()
+        val tagToConstant = Multimap<Int, EnumConstant>()
         for (constant in constants) {
-            (tagToConstant.getOrPut(constant.tag) {
-                mutableListOf<EnumConstant>()
-            }).add(constant)
+            tagToConstant.put(constant.tag, constant)
         }
 
         for ((key, value) in tagToConstant) {

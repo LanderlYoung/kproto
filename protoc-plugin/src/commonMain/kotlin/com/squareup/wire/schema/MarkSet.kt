@@ -15,6 +15,8 @@
  */
 package com.squareup.wire.schema
 
+import com.squareup.wire.schema.internal.Multimap
+
 /**
  * A mark set is used in three phases:
  *
@@ -30,7 +32,7 @@ package com.squareup.wire.schema
  */
 internal class MarkSet(val identifierSet: IdentifierSet) {
     val types: MutableSet<ProtoType> = LinkedHashSet()
-    val members: MutableMap<ProtoType, MutableList<ProtoMember>> = mutableMapOf()
+    val members = Multimap<ProtoType, ProtoMember>()
 
     /**
      * Marks `protoMember`, throwing if it is explicitly excluded, or if its enclosing type is
@@ -40,7 +42,7 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
         if (protoMember == null) throw NullPointerException("protoMember == null")
         check(!identifierSet.excludes(protoMember))
         check(!types.contains(protoMember.type))
-        members.getOrPut(protoMember.type) { mutableListOf() }.add(protoMember)
+        members.put(protoMember.type, protoMember)
     }
 
     /**
@@ -71,7 +73,7 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
         if (protoMember == null) throw NullPointerException("type == null")
         if (identifierSet.excludes(protoMember)) return false
         return if (members.containsKey(protoMember.type))
-            members.getOrPut(protoMember.type) { mutableListOf() }.add(protoMember)
+            members.put(protoMember.type, protoMember)
         else
             types.add(protoMember.type)
     }
@@ -92,6 +94,6 @@ internal class MarkSet(val identifierSet: IdentifierSet) {
     operator fun contains(protoMember: ProtoMember?): Boolean {
         if (protoMember == null) throw NullPointerException("protoMember == null")
         if (identifierSet.excludes(protoMember)) return false
-        return members[protoMember.type]?.contains(protoMember) == true
+        return members[protoMember.type].contains(protoMember)
     }
 }

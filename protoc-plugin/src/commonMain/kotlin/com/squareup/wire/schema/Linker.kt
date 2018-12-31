@@ -89,7 +89,7 @@ internal class Linker {
         }
         // For each proto, gather its imports and its transitive imports.
         for (protoFile in protoFiles) {
-            val sink = imports[protoFile.location.path]!!
+            val sink = imports[protoFile.location.path]
             addImports(sink, protoFile.imports, publicImports)
             addImports(sink, protoFile.publicImports, publicImports)
         }

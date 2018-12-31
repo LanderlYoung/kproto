@@ -27,6 +27,7 @@ class SchemaTest {
         loader.addProto("all_types.proto")
 
         val schema = loader.load()
-    }
 
+        assertTrue(schema.protoFiles().isNotEmpty())
+    }
 }
