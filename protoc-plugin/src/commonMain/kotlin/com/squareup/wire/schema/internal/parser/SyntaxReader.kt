@@ -243,7 +243,7 @@ class SyntaxReader(private val data: CharArray, private val location: Location) 
     private fun readComment(): String {
         if (pos == data.size || data[pos] != '/') throw AssertionError()
         pos++
-        val commentType = if (pos < data.size) data[pos++] else -1
+        val commentType = if (pos < data.size) data[pos++].toInt() else -1
         if (commentType == '*'.toInt()) {
             val result = StringBuilder()
             var startOfLine = true

@@ -1,0 +1,8 @@
+package squareup.protos.extension_collision_2;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FieldOptions {
+  optional string a = 22103;
+  optional string c = 22104;
+}

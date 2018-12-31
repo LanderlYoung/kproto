@@ -1,6 +1,9 @@
 package io.landerlyoung.github.kproto.protoc.plugin
 
+import com.squareup.wire.schema.SchemaLoader
 import org.junit.Test
+import java.io.File
+import kotlin.test.assertTrue
 
 /**
  * <pre>
@@ -14,7 +17,16 @@ import org.junit.Test
 class SchemaTest {
     @Test
     fun testTest() {
+        assertTrue(true)
+    }
 
+    @Test
+    fun loadProtos() {
+        val loader = SchemaLoader()
+        loader.addSource(File("src/commonTest/resources/proto"))
+        loader.addProto("all_types.proto")
+
+        val schema = loader.load()
     }
 
 }
