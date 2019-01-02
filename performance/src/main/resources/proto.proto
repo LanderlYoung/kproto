@@ -1,0 +1,60 @@
+syntax = "proto3";
+option java_package = "io.landerlyoung.github.kproto.parser.serialtest.wire";
+
+enum ItemType {
+    TEXT = 0;
+    PICTURE = 1;
+    BINARY = 100;
+}
+
+message TextItem {
+    string text = 1;
+}
+
+message PictureItem {
+    string pictureUrl = 1;
+}
+
+message CompoundItem {
+    oneof item {
+        TextItem text = 1;
+        PictureItem picture = 2;
+    }
+}
+
+message Message {
+    ItemType itemType = 1;
+    repeated CompoundItem items = 2;
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 page_number = 2;
+  int32 result_per_page = 3;
+  repeated string results = 4;
+  bytes buffer = 5;
+}
+
+message Types {
+    string title = 1;
+    string name = 2;
+    string gender = 3;
+
+    // omit uint
+    int32 opt_int32 = 4;
+    int64 opt_int64 = 5;
+    sint32 opt_sint32 = 6;
+    sint64 opt_sint64 = 7;
+    bool opt_bool = 8;
+    float opt_float = 9;
+    double opt_double = 10;
+    bytes opt_bytes = 11;
+
+    repeated int32 pack_int32 = 12;
+    repeated string pack_string = 13;
+    repeated TextItem pack_msg = 14;
+
+    map<string, TextItem> map_msg = 15;
+    map<int32, string> map_is = 16;
+}
+

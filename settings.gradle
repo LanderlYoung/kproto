@@ -1,4 +1,5 @@
 enableFeaturePreview('GRADLE_METADATA')
 
 include ':proto-parser'
+include ':performance'
 
