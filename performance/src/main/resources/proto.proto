@@ -1,5 +1,5 @@
 syntax = "proto3";
-option java_package = "io.landerlyoung.github.kproto.parser.serialtest.wire";
+option java_package = "io.landerlyoung.github.kproto.performance.serialtest.wire";
 
 enum ItemType {
     TEXT = 0;

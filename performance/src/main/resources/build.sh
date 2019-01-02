@@ -1,6 +1,6 @@
 
 SRC_DIR=../java
-CODE_DIR=io/landerlyoung/github/kproto/parser/serialtest
+CODE_DIR=io/landerlyoung/github/kproto/performance/serialtest
 
 mkdir -p $SRC_DIR/$CODE_DIR
 
