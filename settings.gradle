@@ -1,4 +1,4 @@
 enableFeaturePreview('GRADLE_METADATA')
 
-include ':protoc-plugin'
+include ':proto-parser'
 
