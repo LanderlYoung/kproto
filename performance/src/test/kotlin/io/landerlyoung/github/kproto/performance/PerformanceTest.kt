@@ -2,7 +2,9 @@ package io.landerlyoung.github.kproto.performance
 
 import io.landerlyoung.github.kproto.performance.serialtest.eq
 import io.landerlyoung.github.kproto.performance.serialtest.javalite.Proto
+import io.landerlyoung.github.kproto.performance.serialtest.kotlin.Kotlin
 import io.landerlyoung.github.kproto.performance.serialtest.wire.*
+import kotlinx.serialization.protobuf.ProtoBuf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -46,6 +48,16 @@ class PerformanceTest {
         val protoMessageCopy = Proto.Message.parseFrom(protoOut)
 
         assertEquals(protoMessage, protoMessageCopy)
+    }
+
+    @Test
+    fun testKotlin() {
+        val kotlinMessage = buildKotlinMessage()
+        val kotlinOut = ProtoBuf.plain.dump(Kotlin.Message.serializer(), kotlinMessage)
+
+        val kotlinMessageCopy = ProtoBuf.plain.load(Kotlin.Message.serializer(), kotlinOut)
+
+        assertEquals(kotlinMessage, kotlinMessageCopy)
     }
 
     // wire == proto == kotlin
@@ -96,5 +108,13 @@ class PerformanceTest {
                                 .build())
                         .build())
                 .build()
+    }
+
+    private fun buildKotlinMessage(): Kotlin.Message {
+        return Kotlin.Message(
+                itemType = Kotlin.ItemType.PICTURE,
+                items = listOf(Kotlin.CompoundItem(Kotlin.TextItem("text_item_message")),
+                        Kotlin.CompoundItem(Kotlin.PictureItem("picture_item_url"))))
+
     }
 }
