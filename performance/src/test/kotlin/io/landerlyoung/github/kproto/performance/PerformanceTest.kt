@@ -24,15 +24,15 @@ class PerformanceTest {
     fun testTest() {
         // warm up
         for (i in 0..1000) {
-            buildWireMessage()
-            buildProtoMessage()
+            testWire()
+            testProto()
+            testKotlin()
         }
     }
 
     @Test
     fun testWire() {
         val wireMessage = buildWireMessage()
-        val protoMessage = buildProtoMessage()
 
         val wireOut = wireMessage.encode()
         val wireMessageCopy = Message.ADAPTER.decode(wireOut)
@@ -58,6 +58,60 @@ class PerformanceTest {
         val kotlinMessageCopy = ProtoBuf.plain.load(Kotlin.Message.serializer(), kotlinOut)
 
         assertEquals(kotlinMessage, kotlinMessageCopy)
+    }
+
+    @Test
+    fun wireSerialize_1000() {
+        val wireMessage = buildWireMessage()
+
+        for (i in 0 until 1000) {
+            wireMessage.encode()
+        }
+    }
+
+    @Test
+    fun protoSerialize_1000() {
+        val protoMessage = buildProtoMessage()
+
+        for (i in 0 until 1000) {
+            protoMessage.toByteArray()
+        }
+    }
+
+    @Test
+    fun kotlinSerialize_1000() {
+        val kotlinMessage = buildKotlinMessage()
+
+        for (i in 0 until 1000) {
+            ProtoBuf.plain.dump(Kotlin.Message.serializer(), kotlinMessage)
+        }
+    }
+
+    @Test
+    fun wireDeserialize_1000() {
+        val wireMessage = buildWireMessage().encode()
+
+        for (i in 0 until 1000) {
+            Message.ADAPTER.decode(wireMessage)
+        }
+    }
+
+    @Test
+    fun protoDeserialize_1000() {
+        val protoMessage = buildProtoMessage().toByteArray()
+
+        for (i in 0 until 1000) {
+            Proto.Message.parseFrom(protoMessage)
+        }
+    }
+
+    @Test
+    fun kotlinDeserialize_1000() {
+        val kotlinMessage = ProtoBuf.plain.dump(Kotlin.Message.serializer(), buildKotlinMessage())
+
+        for (i in 0 until 1000) {
+            ProtoBuf.plain.load(Kotlin.Message.serializer(), kotlinMessage)
+        }
     }
 
     // wire == proto == kotlin
