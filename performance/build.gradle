@@ -10,7 +10,9 @@ sourceCompatibility = 1.8
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$kotlin_serialization_version"
-    implementation 'com.squareup.wire:wire-runtime:2.2.0'
+    // implementation 'com.squareup.wire:wire-runtime:2.2.0'
+    implementation fileTree(dir: 'libs')
+    implementation "com.squareup.okio:okio:2.1.0"
     implementation 'com.google.protobuf:protobuf-lite:3.0.1'
     // implementation 'com.google.protobuf:protobuf-java:3.6.1'
     testImplementation group: 'junit', name: 'junit', version: '4.12'

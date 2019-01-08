@@ -68,6 +68,7 @@ object Kotlin {
     ) {
         companion object Serializer : KSerializer<CompoundItem> {
 
+            @Suppress("NOTHING_TO_INLINE")
             inline fun serializer(): Serializer = this
 
             override val descriptor: SerialDescriptor
