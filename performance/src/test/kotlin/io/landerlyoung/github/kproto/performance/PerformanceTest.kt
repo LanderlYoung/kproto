@@ -61,6 +61,15 @@ class PerformanceTest {
     }
 
     @Test
+    fun testWireKotlin() {
+        val wireKotlinMessage = buildWireKotlinMessage()
+        val out = wireKotlinMessage.encode()
+        val copy = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.Message.ADAPTER.decode(out)
+
+        assertEquals(wireKotlinMessage, copy)
+    }
+
+    @Test
     fun wireSerialize_1000() {
         val wireMessage = buildWireMessage()
 
@@ -134,6 +143,15 @@ class PerformanceTest {
         assertTrue(wireFromProto.eq(protoFromWire))
     }
 
+    @Test
+    fun testWireAndWireKotlin() {
+        val wireKotlinMessage = buildWireKotlinMessage()
+        val out = wireKotlinMessage.encode()
+        val wireCopy = Message.ADAPTER.decode(out)
+
+        assertEquals(wireCopy, buildWireMessage())
+    }
+
     private fun buildWireMessage(): Message {
         return Message.Builder()
                 .itemType(ItemType.PICTURE)
@@ -147,6 +165,21 @@ class PerformanceTest {
                 ))
                 .build()
     }
+
+    private fun buildWireKotlinMessage() =
+            io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.Message(
+                    itemType = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.ItemType.PICTURE,
+                    items = listOf(
+                            io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem(
+                                    item = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem.Item.Text(
+                                            io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.TextItem("text_item_message")
+                                    )),
+                            io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem(
+                                    item = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem.Item.Picture(
+                                            io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.PictureItem("picture_item_url")
+                                    ))
+                    )
+            )
 
     private fun buildProtoMessage(): Proto.Message {
         return Proto.Message.newBuilder()
