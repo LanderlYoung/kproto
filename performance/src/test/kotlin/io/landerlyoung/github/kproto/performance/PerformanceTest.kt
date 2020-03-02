@@ -27,6 +27,7 @@ class PerformanceTest {
             testWire()
             testProto()
             testKotlin()
+            testWireKotlin()
         }
     }
 
@@ -154,7 +155,7 @@ class PerformanceTest {
 
     private fun buildWireMessage(): Message {
         return Message.Builder()
-                .itemType(ItemType.PICTURE)
+                .itemType(ItemType.TEXT)
                 .items(listOf(
                         CompoundItem.Builder()
                                 .text(TextItem("text_item_message"))
@@ -168,7 +169,7 @@ class PerformanceTest {
 
     private fun buildWireKotlinMessage() =
             io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.Message(
-                    itemType = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.ItemType.PICTURE,
+                    itemType = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.ItemType.TEXT,
                     items = listOf(
                             io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem(
                                     item = io.landerlyoung.github.kproto.performance.serialtest.wire.kotlin.CompoundItem.Item.Text(
@@ -183,7 +184,7 @@ class PerformanceTest {
 
     private fun buildProtoMessage(): Proto.Message {
         return Proto.Message.newBuilder()
-                .setItemType(Proto.ItemType.PICTURE)
+                .setItemType(Proto.ItemType.TEXT)
                 .addItems(Proto.CompoundItem.newBuilder()
                         .setText(Proto.TextItem.newBuilder()
                                 .setText("text_item_message")
@@ -199,7 +200,7 @@ class PerformanceTest {
 
     private fun buildKotlinMessage(): Kotlin.Message {
         return Kotlin.Message(
-                itemType = Kotlin.ItemType.PICTURE,
+                itemType = Kotlin.ItemType.TEXT,
                 items = listOf(Kotlin.CompoundItem(Kotlin.TextItem("text_item_message")),
                         Kotlin.CompoundItem(Kotlin.PictureItem("picture_item_url"))))
 
