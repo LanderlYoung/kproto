@@ -17,9 +17,9 @@ package com.squareup.wire.schema
 
 import com.squareup.wire.schema.internal.parser.ProtoFileElement
 import com.squareup.wire.schema.internal.parser.ProtoParser
-import kotlinx.io.IOException
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import java.util.*

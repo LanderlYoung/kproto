@@ -31,7 +31,7 @@ data class GroupElement(
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)
         if (label != null) {
-            builder.append(label.name.toLowerCase()).append(' ')
+            builder.append(label.name.lowercase()).append(' ')
         }
         builder.append("group ")
                 .append(name)

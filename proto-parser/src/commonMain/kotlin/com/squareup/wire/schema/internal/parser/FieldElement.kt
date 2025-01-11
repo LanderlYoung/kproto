@@ -19,6 +19,7 @@ import com.squareup.wire.schema.Field
 import com.squareup.wire.schema.Location
 import com.squareup.wire.schema.internal.Util
 import com.squareup.wire.schema.internal.Util.appendDocumentation
+import java.util.*
 
 data class FieldElement(
         val location: Location,
@@ -33,7 +34,7 @@ data class FieldElement(
         val builder = StringBuilder()
         appendDocumentation(builder, documentation)
         if (label != null) {
-            builder.append(label.name.toLowerCase()).append(' ')
+            builder.append(label.name.lowercase()).append(' ')
         }
         builder.append(type)
                 .append(' ')
